@@ -4,7 +4,7 @@
 PickYourDifficulty is a flexible, Bedrock-compatible Paper plugin that lets players select their own difficulty level via an in-game GUI.
 
 ![Minecraft Version](https://img.shields.io/badge/Minecraft-1.21-blue?style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+![License](https://img.shields.io/badge/license-Proprietary-red?style=flat-square)
 ![Build](https://img.shields.io/badge/build-Maven-blue?style=flat-square)
 ## 🎮 Features
 
@@ -88,4 +88,8 @@ See [`config.yml`](config.yml) for the full, structured, and documented config f
 
 ## 📜 License
 
-This plugin is provided under the terms of the [MIT License](LICENSE.txt).
+This plugin is released under a **proprietary license**.  
+You are allowed to use and modify the plugin **for personal server use only**.  
+Redistribution, resale, and public sharing are strictly prohibited.
+
+See the full [LICENSE](LICENSE) for complete terms.

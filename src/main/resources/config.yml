@@ -1,0 +1,371 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                      PickYourDifficulty Config                     ║
+# ║     Let players choose their personal challenge & experience       ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ╔═══🧭 General Settings═══════════════════════════════════════════════╗
+# Determines how the plugin behaves globally
+autoOpenAfterRules: true              # Open GUI automatically after AcceptTheRules is accepted
+autoOpenIfUnchosen: true              # Also open GUI for any player who hasn't selected a difficulty
+fallbackDifficulty: "normal"          # Used if a player has no difficulty or config data is corrupt
+
+# ╔═══🔒 Difficulty Selection Rules═════════════════════════════════════╗
+difficultySelection:
+  lockedOnceChosen: false             # If true, players can only pick once and it is permanent
+  allowRechoose: true                 # If false, players cannot change after first choice (alias for lockedOnceChosen = true)
+  cooldownSeconds: 86400              # Time before player can change again (only applies if rechoose is allowed)
+                                      # Example: 86400 = 24 hours, 0 = no cooldown
+  cooldownFormat: "<hours>h <minutes>m <seconds>s"
+                                      # Format used for <cooldowntime> placeholder in messages
+                                      # Supported tokens: <days>, <hours>, <minutes>, <seconds>
+  require-confirmation: true          # Optional: show confirmation before applying new difficulty
+
+# ╔═══⏳ Despawn Timer Behavior═════════════════════════════════════════╗
+despawnBehavior:
+  onlyAffectsDeathDrops: true         # If true, the custom despawn timer only applies to death drops
+                                      # 🧠 Prevents grief where a player with short despawn time picks up
+                                      # another player's items and causes them to vanish too quickly.
+
+  preventTimerDowngrade: true         # If true, items will never have their despawn timer shortened by
+                                      # being picked up by another player with a stricter difficulty.
+                                      # 🛡️ Example: A 30-min item won't drop to 30 sec if picked up by
+                                      # someone on Hardcore.
+
+# ╔═══🎮 Difficulty Presets═════════════════════════════════════════════╗
+  # Each entry defines a selectable difficulty mode
+  # 🧠 TIP: GUI slots start at 0 (top-left) and go up left-to-right, row-by-row
+  # ┌─────────────────────────────────────┐
+  # │  0   1   2   3   4   5   6   7   8  │  ← Row 1
+  # │  9  10  11  12  13  14  15  16  17  │  ← Row 2
+  # │ 18  19  20  21  22  23  24  25  26  │  ← Row 3
+  # │ 27  28  29  30  31  32  33  34  35  │  ← Row 4
+  # │ 36  37  38  39  40  41  42  43  44  │  ← Row 5
+  # │ 45  46  47  48  49  50  51  52  53  │  ← Row 6
+  # └─────────────────────────────────────┘
+
+difficulties:
+  normal:
+    slot: 10                          # GUI slot number (0–53 depending on GUI rows)
+    despawn-seconds: 300              # 5 minutes (vanilla default)
+    grace-playtime-seconds: 0         # No grace period
+    icon:
+      material: IRON_SWORD
+      name: "<gray>Normal</gray>"
+      lore:
+        - "<white>Vanilla experience</white>"
+        - "<gray>Standard despawn & no grace</gray>"
+
+  easy:
+    slot: 11                          # GUI slot number (0–53 depending on GUI rows)
+    despawn-seconds: 600              # 10 minutes
+    grace-playtime-seconds: 21600     # 6 hours
+    icon:
+      material: GOLDEN_APPLE
+      name: "<green>Easy</green>"
+      lore:
+        - "<white>10 min despawn</white>"
+        - "<white>6 hr grace period</white>"
+
+  very_easy:
+    slot: 12                          # GUI slot number (0–53 depending on GUI rows)
+    despawn-seconds: 1800             # 30 minutes
+    grace-playtime-seconds: 86400     # 24 hours
+    icon:
+      material: TOTEM_OF_UNDYING
+      name: "<aqua>Very Easy</aqua>"
+      lore:
+        - "<white>30 min despawn</white>"
+        - "<white>24 hr grace period</white>"
+
+  hard:
+    slot: 14                          # GUI slot number (0–53 depending on GUI rows)
+    despawn-seconds: 120              # 2 minutes
+    grace-playtime-seconds: 0
+    icon:
+      material: NETHERITE_SWORD
+      name: "<red>Hard</red>"
+      lore:
+        - "<white>2 min despawn</white>"
+        - "<gray>No grace period</gray>"
+
+  hardcore:
+    slot: 15                          # GUI slot number (0–53 depending on GUI rows)
+    despawn-seconds: 30               # 30 seconds
+    grace-playtime-seconds: 0
+    icon:
+      material: WITHER_SKELETON_SKULL
+      name: "<dark_red><bold>Hardcore</bold></dark_red>"
+      lore:
+        - "<white>30 sec despawn</white>"
+        - "<gray>No grace at all</gray>"
+
+# ╔═══⚙️ Per-Difficulty Commands════════════════════════════════════════╗
+  # Run custom commands when a player selects a difficulty.
+  # This section is optional and applies globally per difficulty key.
+  #
+  # 🧠 TIP: Use this to give kits, send messages, apply effects, or run scripts.
+  #        These can simulate starter kits by hooking into other plugins.
+  #
+  # 📌 Placeholders:
+  #   <player>     – Player name
+  #   <difficulty> – Selected difficulty name
+  #
+  # 🧩 Prefix Support:
+  #   - "console:" → Runs as the server console (default if no prefix)
+  #   - "player:"  → Runs as the player themselves
+  #
+  # ✅ Examples:
+  #   - "console:kit hard"
+  #   - "player:me I'm brave enough for Hardcore"
+  #   - "say <player> chose <difficulty>!" ← executed as console by default
+  #
+  # 🔄 All commands are run by console by default.
+
+difficultyCommands:
+  normal:
+    - "console:tell <player> You selected Normal. Play as Mojang intended."
+    - "console:broadcast <player> has chosen the Normal difficulty."
+
+  easy:
+    - "console:tell <player> You’ve selected Easy! Enjoy the relaxed pace."
+    - "console:broadcast <player> is taking the Easy route."
+
+  very_easy:
+    - "console:tell <player> Welcome to Very Easy mode — peaceful and slow."
+    - "console:broadcast <player> embraced the gentle journey of Very Easy."
+
+  hard:
+    - "console:tell <player> Brave choice. Hard mode won't show mercy."
+    - "console:broadcast <player> is ready to survive in Hard mode."
+
+  hardcore:
+    - "console:tell <player> This is Hardcore. No grace, no forgiveness."
+    - "console:broadcast <player> entered Hardcore mode. Wish them luck."
+
+# ╔═══🛡️ Grace Period Mechanics═══════════════════════════════════════╗
+graceMode:
+  enabled: true                      # Master toggle for grace period invincibility
+  override-worlds:                   # 🌍 Optional: Disable grace in specific worlds
+    disabled:
+      - "creative"
+      - "lobby"
+
+  showReminder: true                 # Notify players when grace is active/expired
+
+  # 📣 Reminder Display Mode:
+  #   - "onLogin" → Shown once when a player joins if still under grace period
+  #   - "interval" → Repeats every X seconds while grace is active
+  #   - "both" → Combines both modes
+  graceReminderMode: "onLogin"       # Options: onLogin, interval, both
+                                     # "Interval reminder appears every intervalSeconds while grace is active."
+
+  intervalSeconds: 1800              # How often to repeat reminder (in seconds, only if interval mode used)
+
+
+  bypassDamageTypes:                 # Players are protected from these during grace
+    - VOID                           # Prevents death when falling into the void
+    - FALL                           # Prevents fall damage during grace period
+
+  # 🧠 TIP: These must match Bukkit's DamageCause enum exactly.
+  # Common values include:
+  #   - CONTACT (e.g., cactus)
+  #   - ENTITY_ATTACK (melee hits)
+  #   - PROJECTILE (arrows, tridents)
+  #   - SUFFOCATION (inside blocks)
+  #   - FALL (falling damage)
+  #   - FIRE, FIRE_TICK, LAVA
+  #   - DROWNING, VOID, MAGIC, POISON
+  #   - WITHER, EXPLOSION, ENTITY_EXPLOSION
+  #   - THORNS, LIGHTNING, CRAMMING, STARVATION
+  # Full list: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+
+# ╔═══🖼️ GUI Settings═══════════════════════════════════════════════════╗
+gui:
+  title: "<gold><bold>Select Your Difficulty</bold></gold>"
+  rows: 3                            # Total rows in GUI (must be multiple of 1–6)
+  fill-empty: true                   # Fill unused slots with placeholder (e.g., gray glass)
+  closeOnSelect: true                # Close the confirmation GUI after the player confirms their selection
+
+  filler-item:
+    material: GRAY_STAINED_GLASS_PANE
+    name: "<gray>Choose wisely…</gray>"
+    lore: []
+
+# ╔═══🔐 Difficulty Visibility Rules══════════════════════════════════════╗
+# Toggle whether players can see difficulty icons they don't have access to.
+# If false, they’ll be grayed out with a hover message.
+# If true, they’ll be hidden entirely from the GUI.
+
+hide-unselectable-difficulties: false
+
+# ╔═══✅ Difficulty Confirmation GUI═════════════════════════════════════╗
+confirmationGUI:
+  title: "<gold><bold>Confirm Your Difficulty</bold></gold>"
+  rows: 3
+  fill-empty: true
+
+  filler-item:
+    material: BLACK_STAINED_GLASS_PANE
+    name: "<gray>Confirm or Cancel</gray>"
+    lore: []
+
+  # 🔁 Default button layout shared by both modes
+  buttons:
+    info-banner:
+      enabled: true
+      slot: 4
+      material: PAPER
+      name: "<yellow>Confirm Your Choice</yellow>"
+      lore:
+        - "<gray>This difficulty can be changed later.</gray>"
+        - "<white>You selected: <bold><difficulty></bold></white>"
+        - "<gray>Confirm or cancel below.</gray>"
+
+    confirm-button:
+      slot: 11
+      material: LIME_WOOL
+      name: "<green><bold>Confirm</bold></green>"
+      lore:
+        - "<gray>This difficulty can be changed later.</gray>"
+        - "<yellow>Click to confirm.</yellow>"
+
+    cancel-button:
+      slot: 15
+      material: RED_WOOL
+      name: "<red><bold>Cancel</bold></red>"
+      lore:
+        - "<gray>Return to selector.</gray>"
+
+  # 🔒 Optional overrides for permanent mode (lockedOnceChosen: true)
+  overrides:
+    locked:
+      buttons:
+        info-banner:
+          name: "<red><bold>Permanent Choice</bold></red>"
+          lore:
+            - "<gray>This choice is <red>permanent</red>."
+            - "<white>You selected: <bold><difficulty></bold></white>"
+            - "<gray>Click confirm to lock it in.</gray>"
+
+        confirm-button:
+          material: BARRIER
+          name: "<dark_red><bold>Confirm (One-Time)</bold></dark_red>"
+          lore:
+            - "<gray>This cannot be changed later!</gray>"
+            - "<red>Click to confirm.</red>"
+
+  # ╔═══🔊 Sound Effects═════════════════════════════════════════════════╗
+  # Plays sounds when players interact with the GUI or receive messages.
+  # 🧠 TIP: Use names from Spigot's Sound enum (case-sensitive).
+  #   Examples:
+  #     - UI_BUTTON_CLICK
+  #     - ENTITY_PLAYER_LEVELUP
+  #     - ENTITY_EXPERIENCE_ORB_PICKUP
+  #     - BLOCK_NOTE_BLOCK_BASS
+  #     - ENTITY_VILLAGER_NO
+  #     - BLOCK_CHEST_OPEN
+  #     - ENTITY_ENDERMAN_TELEPORT
+  #   🔗 Full list:
+  #     https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/Sound.html
+  #
+  # 🧱 Bedrock Compatibility Notes:
+  #   • Bedrock does not support all Java sound names.
+  #   • Stick to commonly used UI and ambient sounds for cross-platform safety.
+  #   • Known Bedrock-safe sounds:
+  #       - UI_BUTTON_CLICK
+  #       - BLOCK_CHEST_OPEN
+  #       - ENTITY_PLAYER_LEVELUP
+  #       - BLOCK_NOTE_BLOCK_PLING
+  #       - ENTITY_ARROW_HIT_PLAYER
+  #       - BLOCK_NOTE_BLOCK_BASS
+  #       - BLOCK_ANVIL_LAND
+  #       - ENTITY_EXPERIENCE_ORB_PICKUP
+  #       - BLOCK_NOTE_BLOCK_HARP
+  #
+  #   🔗 Full Java-to-Bedrock sound mappings:
+  #     https://github.com/GeyserMC/mappings/blob/master/sounds.json
+sounds:
+  gui-open:
+    sound: "UI_BUTTON_CLICK"                           # Played when the main difficulty GUI opens
+    volume: 1.0
+    pitch: 1.0
+  confirm-selection:
+    sound: "ENTITY_EXPERIENCE_ORB_PICKUP"              # Played when a player confirms a difficulty
+    volume: 1.0
+    pitch: 1.0
+  cancel-selection:
+    sound: "BLOCK_NOTE_BLOCK_BASS"                     # Played when a player cancels or closes the GUI
+    volume: 1.0
+    pitch: 1.0
+  gui-denied-locked:
+    sound: "BLOCK_ANVIL_LAND"                          # Played when a player tries to reopen but selection is permanent
+    volume: 1.0
+    pitch: 1.0
+  gui-denied-cooldown:
+    sound: "ENTITY_VILLAGER_NO"                        # Played when a player tries to change before cooldown expired
+    volume: 1.0
+    pitch: 1.0
+
+  # ╔═══🎵 Sound Compatibility (for Geyser/Bedrock clients)════════════════╗
+  # Only use this if sounds don't play properly on Bedrock.
+  # 🧱 Only active if integration.geyserSupport is true.
+  # Refer to the mapping guide: https://github.com/GeyserMC/mappings/blob/master/sounds.json
+  geyseroverrides:
+    #ENTITY_VILLAGER_NO: UI_BUTTON_CLICK
+    #BLOCK_CHEST_OPEN: BLOCK_NOTE_BLOCK_PLING
+
+# ╔═══🔌 Plugin Integration Settings═══════════════════════════════════╗
+integrations:
+  acceptTheRules: true              # Enable integration if AcceptTheRules is installed
+  geyserSupport: true               # Adjust GUI behavior for Bedrock users via Geyser
+
+# ╔═══👁️ Hologram Display (DecentHolograms)═══════════════════════════╗
+holograms:
+  enabled: true                                        # Master toggle for showing despawn time holograms
+  requirePermission: true                              # Only players with permission can see holograms
+  defaultEnabled: true                                 # Should holograms be shown by default for new players
+  format: "<gray>Despawn: <despawnTime>s</gray>"       # MiniMessage-formatted text above item stacks
+  updateIntervalTicks: 20                              # How often the hologram updates (20 ticks = 1 second)
+
+
+# ╔═══📦 PlaceholderAPI Support═════════════════════════════════════════╗
+placeholderAPI:
+  enabled: true                     # Hook into PlaceholderAPI if present
+  registerPlaceholders: true        # Registers %pickyourdifficulty_*% placeholders
+
+  # 📌 Registered Placeholders:
+  # These can be used in other plugins like Scoreboards, TAB, DeluxeMenus, etc.
+  #
+  #   %pickyourdifficulty_difficulty%        → Current difficulty (e.g., "easy")
+  #   %pickyourdifficulty_difficulty_color%  → Difficulty name with MiniMessage color tags (e.g., "<green>Easy</green>")
+  #   %pickyourdifficulty_despawn_time%      → Despawn time in seconds (e.g., "600")
+  #   %pickyourdifficulty_grace_time_total%  → Total grace time configured (e.g., "21600")
+  #   %pickyourdifficulty_grace_time_left%   → Remaining grace time (e.g., "4321")
+  #   %pickyourdifficulty_can_change%        → "true"/"false" if the player is allowed to change difficulty
+  #   %pickyourdifficulty_change_cooldown%   → Seconds remaining before allowed to switch again
+
+# ╔═══🛡️ Command Permissions═══════════════════════════════════════════╗
+commands:
+  requirePermissions: true        # If true, restrict commands to players with permission nodes
+  # Nodes defined in plugin.yml (e.g., pickyourdifficulty.gui)
+
+# ╔═══👋 Welcome Messages═══════════════════════════════════════════════╗
+welcome:
+  enableOnJoin: true
+  enableOnSelection: true
+
+# ╔═══💬 Messages & MiniMessage Formatting════════════════════════════╗
+  # Plugin messages are located in messages.yml for easier editing.
+  #
+  # View or customize them here:
+  #   → plugins/PickYourDifficulty/messages.yml
+
+# ╔═══🐞 Debug Settings═════════════════════════════════════════════════╗
+debugMode: false                    # Logs extra info for devs and admins
+
+  # 📄 Entries shown per page in /pyddebug output
+debugEntriesPerPageOnline: 10          # 🧠 Online Player Data
+debugEntriesPerPageStored: 10          # 📦 Stored Difficulty Data
+# ╔═══🧪 Developer Mode═════════════════════════════════════════════════╗
+devMode:
+  alwaysShowGUI: false              # Forces the GUI to open every time (useful for testing)

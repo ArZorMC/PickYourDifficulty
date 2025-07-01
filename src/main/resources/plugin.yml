@@ -1,0 +1,144 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                🧩 PickYourDifficulty plugin.yml                    ║
+# ║      Core metadata and command/permission registration             ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                       ⚠ REQUIREMENTS NOTICE ⚠                      ║
+# ║ This plugin requires:                                              ║
+# ║ • Paper 1.21 or newer                                              ║
+# ║ • Java 21 or newer                                                 ║
+# ║                                                                    ║
+# ║ Optional (recommended):                                            ║
+# ║ • PlaceholderAPI (for %pickyourdifficulty_*%)                      ║
+# ║ • AcceptTheRules (for auto GUI after rules acceptance)             ║
+# ║ • Geyser (for Bedrock support — auto handled if detected)          ║
+# ║ • DecentHolograms (for despawn timer holograms over items)         ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ╔═══📛 Basic Plugin Info═════════════════════════════════════════════╗
+name: PickYourDifficulty
+main: dev.arzor.pickyourdifficulty.PickYourDifficulty
+version: 1.0.0
+api-version: 1.21
+author: ArZor
+description: >
+  Let players choose their own gameplay difficulty with a GUI that adjusts
+    item despawn time and grace period. Supports holograms, PlaceholderAPI,
+    and is fully Bedrock-compatible via Geyser.
+softdepend:
+  - PlaceholderAPI
+  - DecentHolograms
+  - Geyser
+  - AcceptTheRules
+  - NBTAPI
+
+# ╔═══📜 Command Registration═══════════════════════════════════════════╗
+commands:
+  pyd:
+    description: Main command for PickYourDifficulty
+    usage: /<command> [gui|help|info|reload|reset|set|toggleholograms]
+    aliases: [difficulty, diff]
+
+  pyddebug:
+    description: Show internal plugin debug info (hooks, player state)
+    usage: /pyddebug
+    permission: pickyourdifficulty.debug
+
+# ╔═══🛡️ Permissions═══════════════════════════════════════════════════╗
+permissions:
+
+  # 🔧 Full access to all admin-level functionality
+  pickyourdifficulty.admin:
+    description: Grants access to all admin commands
+    default: op
+    children:
+      pickyourdifficulty.bypass.cooldown: true
+      pickyourdifficulty.bypass.grace: true
+      pickyourdifficulty.reload: true
+      pickyourdifficulty.reset: true
+      pickyourdifficulty.set: true
+      pickyourdifficulty.toggleholograms: true
+      pickyourdifficulty.viewholograms: true
+
+  # 🛠️ Reload the plugin configuration
+  pickyourdifficulty.reload:
+    description: Allows use of /pyd reload
+    default: op
+
+  # 👤 View your currently selected difficulty
+  pickyourdifficulty.info:
+    description: Allows use of /pyd info
+    default: true
+
+  # 📋 Open the selector GUI manually
+  pickyourdifficulty.gui:
+    description: Allows use of /pyd gui
+    default: true
+
+  # 🔁 Toggle despawn holograms for yourself (if enabled in config)
+  pickyourdifficulty.toggleholograms:
+    description: Allows use of /pyd toggleholograms
+    default: true
+
+  # 👁️ Allows the player to see despawn holograms (if config requires permission)
+  pickyourdifficulty.viewholograms:
+    description: Allows seeing item despawn holograms
+    default: true
+
+  # ⏩ Bypass difficulty switching cooldowns
+  pickyourdifficulty.bypass.cooldown:
+    description: Allows switching difficulty without waiting for cooldown
+    default: op
+
+  # 🛡️ Bypass grace period protection (for testing/invulnerability bypass)
+  pickyourdifficulty.bypass.grace:
+    description: Prevents grace period from applying after difficulty selection
+    default: op
+
+  # 🧑‍💼 Admin override: force a player’s difficulty
+  pickyourdifficulty.set:
+    description: Allows use of /pyd set <player> <difficulty>
+    default: op
+
+  # 🧹 Admin override: reset a player’s difficulty
+  pickyourdifficulty.reset:
+    description: Allows use of /pyd reset <player>
+    default: op
+
+  # 🎮 Permissions per difficulty
+  pickyourdifficulty.difficulty.normal:
+    description: Permission for selecting Normal difficulty
+    default: true
+
+  pickyourdifficulty.difficulty.easy:
+    description: Permission for selecting Easy difficulty
+    default: true
+
+  pickyourdifficulty.difficulty.very_easy:
+    description: Permission for selecting Very Easy difficulty
+    default: true
+
+  pickyourdifficulty.difficulty.hard:
+    description: Permission for selecting Hard difficulty
+    default: true
+
+  pickyourdifficulty.difficulty.hardcore:
+    description: Permission for selecting Hardcore difficulty
+    default: true
+
+  # 🌟 Wildcard: Select any difficulty
+  pickyourdifficulty.difficulty.*:
+    description: Allows selecting all difficulties
+    default: true
+    children:
+      pickyourdifficulty.difficulty.normal: true
+      pickyourdifficulty.difficulty.easy: true
+      pickyourdifficulty.difficulty.very_easy: true
+      pickyourdifficulty.difficulty.hard: true
+      pickyourdifficulty.difficulty.hardcore: true
+
+  # 🐞 Debug access for admins or testers
+  pickyourdifficulty.debug:
+    description: Allows access to /pyddebug for viewing plugin state
+    default: op

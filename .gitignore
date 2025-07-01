@@ -1,0 +1,34 @@
+# ╔════════════════════════════════════════════════╗
+# ║     Git Ignore — PickYourDifficulty Plugin     ║
+# ║     Maven + IntelliJ + Eclipse + OS junk       ║
+# ╚════════════════════════════════════════════════╝
+
+# 🔧 Maven build output
+/target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# 📦 Dependency caches
+/.mvn/
+/dependency-reduced-pom.xml
+
+# 💻 IDE configs
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# 🪟 macOS and Windows system files
+.DS_Store
+Thumbs.db
+
+# 🚫 Log and temp files
+*.log
+*.tmp
+
+# 🔐 Optional secrets (if added later)
+/secrets.yml
+.env
+.env.local

@@ -1,0 +1,14 @@
+# ╔════════════════════════════════════════════╗
+# ║     Git Attributes — PickYourDifficulty    ║
+# ╚════════════════════════════════════════════╝
+
+# 📏 Normalize line endings across OSes
+* text=auto
+
+# 📦 Mark binary files
+*.jar binary
+*.png binary
+
+# 🚫 Ignore build artifacts in export/download
+target/ export-ignore
+*.log export-ignore

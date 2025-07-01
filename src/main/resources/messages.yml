@@ -1,0 +1,158 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║               PickYourDifficulty - messages.yml                    ║
+# ║   Customize all messages below using MiniMessage formatting        ║
+# ╚════════════════════════════════════════════════════════════════════╝
+
+# ╔═══💬 MiniMessage Formatting Guide═══════════════════════════════════╗
+# Most plugin messages and GUI labels support <MiniMessage> formatting.
+# You can use tags to color and style text, like:
+#
+#   • <red>Red Text</red>
+#   • <bold><yellow>Bold Yellow</yellow></bold>
+#   • <#ff0000>Hex Color Example</#ff0000>
+#   • <gradient:#fbbf24:#9b5de5>Gradient Text</gradient>
+#   • <hover:show_text:'Extra info'><green>Hover Me</green></hover>
+#   • <click:run_command:'/help'><aqua>Click Me</aqua></click>
+#
+# ⚠️ REMEMBER: Every tag must be properly closed!
+#   ❌ Incorrect: <bold><yellow>Missing a closing tag
+#   ✅ Correct:   <bold><yellow>Styled</yellow></bold>
+#
+# 📌 Available Placeholders:
+#   <prefix>         – Uses the message prefix
+#   <difficulty>     – The player’s selected difficulty label
+#   <despawnTime>    – Despawn time in seconds (optional use)
+#   <graceTime>      – Remaining grace time (only while active)
+#   <graceTimeTotal> – Total grace time for player’s difficulty
+#   <cooldowntime>   – Time remaining until switch allowed
+
+messages:
+  # ╔═══📌 Global Prefix══════════════════════════════════════════════════╗
+  prefix: "<gray>[<#fbbf24>PickYourDifficulty</#fbbf24>]</gray>"
+
+  # ╔═══🎮 Player Feedback════════════════════════════════════════════════╗
+  gui-opened:        "<prefix> <white>Opening difficulty selector…</white>"
+  grace-active:      "<prefix> <green>You are protected by a grace period.</green> <gray>(<graceTime> left)</gray>"
+  grace-expired:     "<prefix> <red>Your grace period has ended. Good luck!</red>"
+  cooldown-wait:     "<prefix> <red>You can change your difficulty again in <bold><cooldowntime></bold>.</red>"
+  already-selected:  "<prefix> <yellow>You have already chosen a difficulty.</yellow>"
+  selection-success: "<prefix> <green>You selected: <bold><difficulty></bold></green>"
+
+  # ╔═══👋 Welcome Messages═══════════════════════════════════════════════╗
+  normal:    "<gray>You've chosen the standard path. Good luck.</gray>"
+  easy:      "<green>You've chosen the easy path. Enjoy your journey!</green>"
+  very_easy: "<aqua>This will be a peaceful adventure.</aqua>"
+  hard:      "<red>The world will be harsh. Survive if you can.</red>"
+  hardcore:  "<dark_red><bold>Survive the impossible. Items vanish in seconds.</bold></dark_red>"
+
+  # ╔═══❓ Help Menu (/pyd help)═══════════════════════════════════════════╗
+  help:
+    header: "<gold>⛏️ PickYourDifficulty Help Menu</gold>"
+    commands:
+      gui:
+        text: "<white>/pyd gui</white> <gray>- Open the difficulty selection menu</gray>"
+        permission: "pickyourdifficulty.gui"
+        suggest: "/pyd gui"
+
+      info:
+        text: "<white>/pyd info</white> <gray>- View your current difficulty</gray>"
+        permission: "pickyourdifficulty.info"
+        suggest: "/pyd info"
+
+      reload:
+        text: "<white>/pyd reload</white> <gray>- Reload the config files</gray>"
+        permission: "pickyourdifficulty.reload"
+        suggest: "/pyd reload"
+
+      set:
+        text: "<white>/pyd set <player> <difficulty></white> <gray>- Set a player's difficulty</gray>"
+        permission: "pickyourdifficulty.set"
+        suggest: "/pyd set "
+
+      reset:
+        text: "<white>/pyd reset <player></white> <gray>- Reset a player's selection</gray>"
+        permission: "pickyourdifficulty.reset"
+        suggest: "/pyd reset "
+
+      toggleholograms:
+        text: "<white>/pyd toggleholograms</white> <gray>- Toggle holograms on/off</gray>"
+        permission: "pickyourdifficulty.toggleholograms"
+        suggest: "/pyd toggleholograms"
+
+  # ╔═══❌ Common Errors══════════════════════════════════════════════════╗
+  error.no-permission: "<prefix><red>You do not have permission to do that."
+  error.players-only: "<prefix><red>Only players can use this command."
+  error.no-permission-gui: "<prefix><red>You don't have permission to use the GUI."
+  error.no-permission-info: "<prefix><red>You lack permission to view your difficulty."
+  error.no-permission-reload: "<prefix><red>You do not have permission to reload the plugin."
+  error.no-permission-reset: "<prefix><red>You do not have permission to reset players."
+  error.no-permission-set: "<prefix><red>You do not have permission to set difficulties."
+  error.no-permission-toggle: "<prefix><red>You don't have permission to toggle holograms."
+  error.player-not-found: "<prefix><red>Player not found: <white><player></white>"
+  error.invalid-difficulty: "<prefix><red>Unknown difficulty: <white><difficulty></white>"
+  error.gui-interact-blocked: "<prefix><red>You can't interact with the GUI like that.</red>"
+  error.no-selection-found: "<prefix><red>No difficulty selection found. Please try again.</red>"
+
+  # ╔═══✅ GUI Confirm & Apply═════════════════════════════════════════════╗
+  confirm:
+    placeholder: "<prefix><gray>[Confirmation GUI not implemented]</gray>"
+    auto-applied: "<prefix><green>You selected: <bold><difficulty></bold></green>"
+
+  # ╔═══📋 /pyd gui═══════════════════════════════════════════════════════╗
+  gui.opened: "<prefix><green>Opening difficulty selection..."
+  gui.open-placeholder: "<prefix><gray>(GUI opening not implemented yet)"
+  gui.no-permission-hover: "<red>You do not have permission to select this difficulty"
+
+  # ╔═══🧾 /pyd info══════════════════════════════════════════════════════╗
+  info.current: "<prefix>Your current difficulty is <yellow><difficulty></yellow>."
+  info.placeholder: "<prefix><gray>(Info system not implemented yet)"
+
+  # ╔═══🔁 /pyd reload════════════════════════════════════════════════════╗
+  reload.success: "<prefix><green>Configuration reloaded."
+
+  # ╔═══🧹 /pyd reset <player>════════════════════════════════════════════╗
+  reset.usage: "<prefix><gray>Usage: /pyd reset <player>"
+  reset.player-not-found: "<prefix><red>Player not found: <white><player></white>"
+  reset.success: "<prefix><green>Reset difficulty for <yellow><player></yellow>."
+
+  # ╔═══⚙ /pyd set <player> <difficulty>═════════════════════════════════╗
+  set.usage: "<prefix><gray>Usage: /pyd set <player> <difficulty>"
+  set.player-not-found: "<prefix><red>Player not found: <white><player></white>"
+  set.invalid-difficulty: "<prefix><red>Unknown difficulty: <white><difficulty></white>"
+  set.success: "<prefix><green>Set difficulty for <yellow><player></yellow> to <green><difficulty></green>."
+
+  # ╔═══🪧 /pyd toggleholograms═══════════════════════════════════════════╗
+  toggle.success-on: "<prefix><green>⏳ Despawn holograms are now <bold>visible</bold>."
+  toggle.success-off: "<prefix><gray>⏳ Despawn holograms are now <bold>hidden</bold>."
+  toggle.no-permission: "<prefix><red>You don’t have permission to toggle holograms."
+  toggle.players-only: "<prefix><red>Only players can use this command."
+
+  # ╔═══📜 /pyd fallback handler══════════════════════════════════════════╗
+  pyd.unknown-subcommand: "<prefix><red>Unknown subcommand. Use <white>/pyd help</white> or tab complete."
+  pyd.player-not-found: "<prefix><red>Player not found: <white><player>"
+  pyd.unknown-difficulty: "<prefix><red>Unknown difficulty: <white><difficulty>"
+  pyd.set-confirm: "<prefix><green>Set difficulty for <yellow><player><green> to <yellow><difficulty>"
+  pyd.reset-confirm: "<prefix><gray>Reset difficulty for <yellow><player>"
+  pyd.reloaded: "<prefix><green>✅ Configuration reloaded."
+  pyd.gui-opening: "<prefix><gray>(GUI opening not implemented yet)"
+  pyd.info-current: "<prefix><gray>Your current difficulty: <yellow>(not implemented)"
+  pyd.holograms-toggled: "<prefix><gray>Toggled hologram display. (not implemented)"
+  pyd.only-players: "<prefix><red>Only players can use this command."
+
+  # ╔═══🐞 /pyddebug output═══════════════════════════════════════════════╗
+  debug.no-permission: "<prefix><red>You do not have permission to use this command."
+  debug.prefix: "<aqua>⛏️ <bold>PickYourDifficulty Debug Info</bold>"
+  debug.online-players: "<gray>• Online players: <yellow><count>"
+  debug.fallback: "<gray>• Fallback difficulty: <yellow><difficulty>"
+  debug.dev-mode: "<gray>• Dev mode: <state>"
+  debug.switching: "<gray>• Allow switching: <state>"
+  debug.holograms: "<gray>• Holograms enabled: <state>"
+  debug.hooks-header: "<aqua>🔌 <bold>Plugin Hooks</bold>"
+  debug.hook-line: "<gray>• <plugin>: <status>"
+  debug.player-line: "<gray>• <yellow><player></yellow>: <white><difficulty></white> | Grace: <green><grace>s</green> | Despawn: <aqua><despawn>s</aqua>"
+  debug.holograms-hidden: "<gray>Players with holograms disabled: <yellow><count>"
+  debug.holograms-active: "<gray>Active holograms: <yellow><count>"
+  debug.reloadables-header: "<aqua>🔁 <bold>Registered Reloadables</bold>"
+  debug.reloadables-entry: "<gray>• <white><class>"
+  debug.storage-header: "<gold>📦 Stored Difficulty Data (<count> total):"
+  debug.storage-line: "<gray>- <name> <dark_gray>(<uuid>)</dark_gray> → <white><difficulty>"

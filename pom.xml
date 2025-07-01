@@ -1,0 +1,146 @@
+<!-- ╔════════════════════════════════════════════════════╗ -->
+<!-- ║              PickYourDifficulty POM                ║ -->
+<!-- ║   Maven Build + Dependency Management for Plugin   ║ -->
+<!-- ╚════════════════════════════════════════════════════╝ -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 🧩 Project Metadata -->
+    <groupId>dev.arzor</groupId>
+    <artifactId>pickyourdifficulty</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>PickYourDifficulty</name>
+    <description>A GUI-based plugin that lets players choose their difficulty, affecting item despawn and grace time.</description>
+
+    <!-- 🔧 Global Properties -->
+    <properties>
+        <java.version>21</java.version>
+        <paper.api.version>1.21.5-R0.1-SNAPSHOT</paper.api.version>
+    </properties>
+
+    <!-- 📦 Dependencies -->
+    <dependencies>
+        <!-- 🧱 Paper API -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+            <version>${paper.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- 🎨 Adventure API (MiniMessage + Components) -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>4.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bukkit</artifactId>
+            <version>4.3.2</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>4.14.0</version>
+        </dependency>
+
+        <!-- 💬 PlaceholderAPI (softdepend) -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- 📦 DecentHolograms (softdepend) -->
+        <dependency>
+            <groupId>com.github.decentsoftware-eu</groupId>
+            <artifactId>decentholograms</artifactId>
+            <version>2.9.2</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- 🧬 Item-NBT-API (required indirectly by DecentHolograms) -->
+        <dependency>
+            <groupId>de.tr7zw</groupId>
+            <artifactId>item-nbt-api-plugin</artifactId>
+            <version>2.15.0</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- 🌐 External Repositories -->
+    <repositories>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>placeholderapi-repo</id>
+            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+        <repository>
+            <id>codemc-repo</id>
+            <url>https://repo.codemc.io/repository/maven-public/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+
+    <!-- ⚙️ Build Configuration -->
+    <build>
+        <plugins>
+            <!-- 🧪 Java Compiler -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+
+            <!-- 🧳 Shade Plugin (Optional: fat jar or relocation) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <relocations>
+                                <!-- Add relocations if shading dependencies -->
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- 👥 Developer Info -->
+    <developers>
+        <developer>
+            <id>arzor</id>
+            <name>ArZor</name>
+            <roles>
+                <role>Lead Developer</role>
+            </roles>
+        </developer>
+    </developers>
+
+</project>

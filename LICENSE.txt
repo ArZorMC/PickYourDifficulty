@@ -1,0 +1,35 @@
+PICKYOURDIFFICULTY PLUGIN LICENSE
+
+Copyright (c) 2025 ArZor
+
+All rights reserved.
+
+By downloading, installing, or using the PickYourDifficulty plugin ("the Software"), you agree to the following terms:
+
+1. PERMITTED USE
+You are granted a non-exclusive, non-transferable license to use, install, and run the Software on your own Minecraft server(s).
+
+2. MODIFICATIONS
+You may modify the Software **for personal use only**. You may not share, distribute, or make public any modifications or derivative works.
+
+3. RESTRICTIONS
+You may not:
+- Redistribute the Software in whole or in part
+- Sell or sublicense the Software
+- Share the Software with others who have not purchased or been granted access directly by the author
+- Claim authorship or ownership of the Software or its components
+
+4. SUPPORT
+Support is provided **only** to users who have legitimately purchased the Software through approved channels.
+
+5. COPYRIGHT AND OWNERSHIP
+The Software remains the intellectual property of the author (ArZor). All rights not explicitly granted in this license are reserved.
+
+6. DISCLAIMER
+The Software is provided “as is”, without warranty of any kind. Use at your own risk.
+
+Unauthorized distribution, reverse engineering, or commercial use without permission may result in bans from supported communities and revocation of your license.
+
+---
+
+For inquiries or support, please contact the author directly.

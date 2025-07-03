@@ -18,86 +18,71 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.List;
 
+// ─────────────────────────────────────────────────────────────
+// 📝 TextUtil — MiniMessage & PlaceholderAPI handling
+// ─────────────────────────────────────────────────────────────
 public class TextUtil {
 
-    // ─────────────────────────────────────────────────────────────
-    // 🎨 MiniMessage Setup
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🎨 MiniMessage Engine═════════════════════════════════════════╗
 
-    /** Global MiniMessage instance (safe to reuse) */
+    // 💬 Global MiniMessage instance (thread-safe singleton)
     private static final MiniMessage mm = MiniMessage.miniMessage();
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔍 PlaceholderAPI Detection
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🔍 PlaceholderAPI Detection═══════════════════════════════════╗
 
-    /**
-     * Checks if PlaceholderAPI is installed and enabled.
-     *
-     * @return true if PlaceholderAPI is available
-     */
+    // 💬 Checks if PlaceholderAPI is available on the server
     public static boolean isPlaceholderAPIEnabled() {
-        return Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+        boolean enabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+
+        // 🧪 Debug: log detection result
+        PickYourDifficulty.debug("🔍 PlaceholderAPI enabled = " + enabled);
+
+        return enabled;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔁 Placeholder Replacement Logic
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🔁 Placeholder Resolution═════════════════════════════════════╗
 
-    /**
-     * Replaces placeholders in a raw string.
-     * Applies both PlaceholderAPI (if available) and custom tags like <player>.
-     *
-     * @param text   Raw input with placeholders
-     * @param player The player context
-     * @return Final string with all placeholders resolved
-     */
+    // 💬 Replaces both PlaceholderAPI placeholders and custom tags
     public static String replacePlaceholders(String text, Player player) {
         String result = text;
 
-        // 📦 Phase 1: Use PlaceholderAPI if present
+        // 📦 Phase 1: Try PlaceholderAPI first (if installed)
         if (isPlaceholderAPIEnabled()) {
             try {
                 result = me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, result);
             } catch (Exception e) {
+                // ❌ Catch any unexpected placeholder errors
                 PickYourDifficulty.getInstance().getLogger().warning(
-                        "[PickYourDifficulty] Failed to apply PlaceholderAPI: " + e.getMessage()
+                        "❌ Failed to apply PlaceholderAPI: " + e.getMessage()
                 );
             }
         }
 
-        // 📦 Phase 2: Built-in tag replacements
+        // 📦 Phase 2: Fallback <player> and <world> tags (even without PAPI)
         result = result
-                .replace("<player>", player.getName())                    // Replace <player> tag
-                .replace("<world>", player.getWorld().getName());        // Replace <world> tag
+                .replace("<player>", player.getName())                    // 👤 Replace <player>
+                .replace("<world>", player.getWorld().getName());         // 🌍 Replace <world>
+
+        // 🧪 Debug: log final resolved string after all substitutions
+        PickYourDifficulty.debug("🔁 Final placeholder output for " + player.getName() + " = " + result);
 
         return result;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧾 MiniMessage to Component Conversions
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🧾 mm() — MiniMessage to Component═════════════════════════════╗
 
-    /**
-     * Parses a MiniMessage string into a Component.
-     *
-     * @param input MiniMessage-formatted string
-     * @return Adventure Component result
-     */
+    // 💬 Converts a MiniMessage string into a Component
     public static Component mm(String input) {
         return mm.deserialize(input);
     }
 
-    /**
-     * Converts a list of MiniMessage strings into a list of Components.
-     *
-     * @param lines List of MiniMessage lines
-     * @return List of Adventure Components
-     */
+    // ╔═══📋 deserializeMiniMessageList() — List Conversion══════════════╗
+
+    // 💬 Converts a list of MiniMessage strings into a list of Components
     public static List<Component> deserializeMiniMessageList(List<String> lines) {
         List<Component> components = new ArrayList<>();
 
-        // 💬 Deserialize each MiniMessage line
+        // 🎨 Convert each line separately to preserve per-line formatting
         for (String line : lines) {
             components.add(mm.deserialize(line));
         }
@@ -105,20 +90,15 @@ public class TextUtil {
         return components;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🎨 Legacy Fallback Format
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🎨 parseLegacyString() — Legacy Format Conversion══════════════╗
 
-    /**
-     * Converts a MiniMessage string to a legacy-formatted string.
-     * Useful for hologram APIs like DecentHolograms that don’t use Components.
-     *
-     * @param message MiniMessage-formatted input
-     * @return List with one legacy-colored line
-     */
+    // 💬 Converts a MiniMessage-formatted string into a legacy (§) formatted line
     public static List<String> parseLegacyString(String message) {
-        // 🧮 Convert MiniMessage → Component → legacy string using section (§) color codes
+
+        // 🧮 MiniMessage → Component → §-formatted legacy string
         String legacy = LegacyComponentSerializer.legacySection().serialize(mm.deserialize(message));
+
+        // 🪄 Return it as a single-line list (for holograms, bossbars, etc.)
         return List.of(legacy);
     }
 }

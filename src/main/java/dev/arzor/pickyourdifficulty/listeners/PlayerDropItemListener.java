@@ -19,6 +19,14 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.persistence.PersistentDataType;
 
+// ─────────────────────────────────────────────────────────────
+// 📤 PlayerDropItemListener — Tags manual drops for despawn
+// ─────────────────────────────────────────────────────────────
+// This listener handles:
+//  • Player Q-key or drag-and-drop item drops
+//  • Applies custom despawn timers based on difficulty
+//  • Creates holograms if enabled in config
+//  • Skips processing if set to death-drops only
 public class PlayerDropItemListener implements Listener {
 
     // ╔════════════════════════════════════════════════════════════════════╗
@@ -26,6 +34,12 @@ public class PlayerDropItemListener implements Listener {
     // ╚════════════════════════════════════════════════════════════════════╝
     private static final NamespacedKey DESPAWN_SECONDS_KEY =
             new NamespacedKey(PickYourDifficulty.getInstance(), "manualdrop_despawn");
+
+    // ╔════════════════════════════════════════════════════════════════════╗
+    // ║        🕓 Persistent Data Key — Tracks Last Pickup Timestamp       ║
+    // ╚════════════════════════════════════════════════════════════════════╝
+    private static final NamespacedKey PICKUP_TIME_KEY =
+            new NamespacedKey(PickYourDifficulty.getInstance(), "pickup_time");
 
     // ─────────────────────────────────────────────────────────────
     // 📥 Player Drop Listener — Fired when a player manually drops
@@ -35,15 +49,27 @@ public class PlayerDropItemListener implements Listener {
         Player player = event.getPlayer();
         Item droppedItem = event.getItemDrop();
 
+        // 🧪 Debug: Event triggered
+        PickYourDifficulty.debug("PlayerDropItemEvent triggered by " + player.getName());
+
         // 📦 Mini Block: Respect config if drops are limited to deaths only
-        if (ConfigManager.despawnOnlyAffectsDeathDrops()) return;
+        if (ConfigManager.despawnOnlyAffectsDeathDrops()) {
+            PickYourDifficulty.debug("Manual drop ignored (config restricts to death drops only).");
+            return;
+        }
 
         // 🛑 Skip if no difficulty is set for this player
         String difficulty = PickYourDifficulty.getInstance().getPlayerDifficultyStorage().getDifficulty(player);
-        if (difficulty == null) return;
+        if (difficulty == null) {
+            PickYourDifficulty.debug("Drop ignored — no difficulty set for " + player.getName());
+            return;
+        }
 
         // 🧮 Lookup despawn time for selected difficulty
         int despawnSeconds = ConfigManager.getDespawnTime(difficulty);
+
+        // 🧪 Debug: Show time being applied
+        PickYourDifficulty.debug("Applying despawn time of " + despawnSeconds + "s for difficulty '" + difficulty + "'");
 
         // 🏷️ Save despawn time to item metadata (for tracking)
         droppedItem.getPersistentDataContainer().set(
@@ -52,16 +78,15 @@ public class PlayerDropItemListener implements Listener {
                 despawnSeconds
         );
 
-        // 🧪 Optional debug log
-        if (ConfigManager.isDebugMode()) {
-            PickYourDifficulty.getInstance().getLogger().info("[PickYourDifficulty] Manual drop: "
-                    + droppedItem.getItemStack().getAmount() + "x " + droppedItem.getItemStack().getType()
-                    + " from " + player.getName() + " (Despawn in " + despawnSeconds + "s)");
-        }
+        // 🧪 Debug: Show final applied drop info
+        PickYourDifficulty.debug("Manual drop: "
+                + droppedItem.getItemStack().getAmount() + "x " + droppedItem.getItemStack().getType()
+                + " from " + player.getName() + " (Despawn in " + despawnSeconds + "s)");
 
         // 🪧 Show hologram if enabled globally
         if (ConfigManager.hologramsEnabled()) {
             HologramManager.createHologram(droppedItem, despawnSeconds);
+            PickYourDifficulty.debug("Hologram created above dropped item for " + player.getName());
         }
     }
 
@@ -75,5 +100,18 @@ public class PlayerDropItemListener implements Listener {
                 PersistentDataType.INTEGER,
                 -1
         );
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 🕓 Retrieve the previous pickup time from item metadata
+    // ─────────────────────────────────────────────────────────────
+    // Returns the timestamp (in ms) when the item was last dropped
+    // Returns 0 if no value is found or invalid
+    public static long getSavedPickupTime(Item item) {
+        if (item.getPersistentDataContainer().has(PICKUP_TIME_KEY, PersistentDataType.LONG)) {
+            Long timestamp = item.getPersistentDataContainer().get(PICKUP_TIME_KEY, PersistentDataType.LONG);
+            return (timestamp != null) ? timestamp : 0L;
+        }
+        return 0L;
     }
 }

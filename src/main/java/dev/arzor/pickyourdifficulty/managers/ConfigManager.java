@@ -42,6 +42,11 @@ public class ConfigManager implements Reloadable {
     public void reload() {
         plugin.reloadConfig();
         config = plugin.getConfig();
+
+        // 🧪 Optional debug log when config is reloaded manually
+        if (isDebugMode()) {
+            plugin.getLogger().info("[PickYourDifficulty] 🔄 Config reloaded from disk.");
+        }
     }
 
     // ╔═══🧭 General Settings═══════════════════════════════════════════════╗
@@ -102,6 +107,10 @@ public class ConfigManager implements Reloadable {
         return config.getBoolean("despawnBehavior.preventTimerDowngrade", true);
     }
 
+    /** Seconds a player must hold an item before they're considered the owner */
+    public static int ownershipTransferThresholdSeconds() {
+        return config.getInt("despawnBehavior.ownershipTransferThreshold", 30);
+    }
 
     // ╔═══🎮 Difficulty Presets════════════════════════════════════════╗
 
@@ -353,7 +362,7 @@ public class ConfigManager implements Reloadable {
 
     /** 🔊 Sound key for opening GUI */
     public static String getGuiOpenSoundKey() {
-        return config.getString("sounds.gui-open.sound", "UI_BUTTON_CLICK");
+        return config.getString("sounds.gui-open.sound", "BLOCK_NOTE_BLOCK_PLING");
     }
     public static float getGuiOpenVolume() {
         return (float) config.getDouble("sounds.gui-open.volume", 1.0);

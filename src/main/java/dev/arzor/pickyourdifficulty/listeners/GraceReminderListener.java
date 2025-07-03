@@ -1,7 +1,7 @@
 // ╔════════════════════════════════════════════════════════════════════╗
 // ║                 📣 GraceReminderListener.java                      ║
-// ║ Reminds players they are under grace (on login or interval)       ║
-// ║ Modes controlled by config: "onLogin", "interval", or "both"      ║
+// ║ Reminds players they are under grace (on login or interval)        ║
+// ║ Modes controlled by config: "onLogin", "interval", or "both"       ║
 // ╚════════════════════════════════════════════════════════════════════╝
 
 package dev.arzor.pickyourdifficulty.listeners;
@@ -23,6 +23,16 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.UUID;
 
+// ─────────────────────────────────────────────────────────────
+// 📣 GraceReminderListener — Sends grace reminders to players
+// ─────────────────────────────────────────────────────────────
+// This listener handles:
+//  • Reminders on join
+//  • Repeating interval reminders
+//
+// 🔁 Mode is configurable: "onLogin", "interval", or "both"
+// ⏰ Respects reminder cooldown via GraceReminderTracker
+// 🌍 Skips players in excluded worlds
 public class GraceReminderListener implements Listener {
 
     private final PlayerDifficultyStorage difficultyStorage;
@@ -33,55 +43,92 @@ public class GraceReminderListener implements Listener {
         // 📦 Mini Block: Only start repeating task if grace is enabled and interval reminders are active
         if (ConfigManager.enableGraceMode()
                 && (reminderMode().equals("interval") || reminderMode().equals("both"))) {
+            PickYourDifficulty.debug("GraceReminderListener → Starting interval task for grace reminders.");
             startIntervalTask();
+        } else {
+            PickYourDifficulty.debug("GraceReminderListener → Not starting interval task (config says not needed).");
         }
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🚪 Join Listener — Send Reminder on Login
+    // 🚪 onPlayerJoin — Send reminder if mode includes "onLogin"
     // ─────────────────────────────────────────────────────────────
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (!ConfigManager.enableGraceMode()) return;         // ⛔ Grace system disabled
-        if (ConfigManager.disableReminder()) return;          // ⛔ Reminders globally disabled
-        if (reminderMode().equalsIgnoreCase("interval")) return; // 💡 Not in login mode
+        if (!ConfigManager.enableGraceMode()) {         // ⛔ Grace system disabled
+            PickYourDifficulty.debug("JoinReminder: Skipped — grace mode disabled.");
+            return;
+        }
+
+        if (ConfigManager.disableReminder()) {          // ⛔ Reminders globally disabled
+            PickYourDifficulty.debug("JoinReminder: Skipped — reminders globally disabled.");
+            return;
+        }
+
+        if (reminderMode().equalsIgnoreCase("interval")) { // 💡 Not in login mode
+            PickYourDifficulty.debug("JoinReminder: Skipped — mode set to interval only.");
+            return;
+        }
 
         Player player = event.getPlayer();
 
-        // 📦 Mini Block: Check if world is excluded or player is not in grace
-        if (shouldIgnoreWorld(player)) return;
-        if (isInGrace(player)) return;
+        // 📦 Mini Block: Check if world is excluded
+        if (shouldIgnoreWorld(player)) {
+            PickYourDifficulty.debug("JoinReminder: Skipped for " + player.getName() + " — world excluded.");
+            return;
+        }
 
-        sendReminder(player);
+        // ✅ Send reminder only if player is still under grace
+        if (isInGrace(player)) {
+            PickYourDifficulty.debug("JoinReminder: Sending to " + player.getName());
+            sendReminder(player);
+        } else {
+            PickYourDifficulty.debug("JoinReminder: Skipped for " + player.getName() + " — grace expired.");
+        }
     }
 
     // ─────────────────────────────────────────────────────────────
-    // ♻️ Interval Task — Run Every Minute
+    // ♻️ startIntervalTask — Repeating reminder based on config interval
     // ─────────────────────────────────────────────────────────────
     private void startIntervalTask() {
         if (ConfigManager.disableReminder()) return; // ⛔ Redundant safety check
+
+        // 🕐 Get the interval delay in seconds from config and convert to ticks
+        int intervalSeconds = ConfigManager.getGraceReminderIntervalSeconds();
+        long intervalTicks = intervalSeconds * 20L;
 
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (shouldIgnoreWorld(player)) continue;
+                    if (shouldIgnoreWorld(player)) {
+                        PickYourDifficulty.debug("IntervalReminder: Skipped for " + player.getName() + " — world excluded.");
+                        continue;
+                    }
 
                     // 📦 Mini Block: Send reminder only if player is still under grace
-                    if (isInGrace(player)) continue;
+                    if (!isInGrace(player)) {
+                        PickYourDifficulty.debug("IntervalReminder: Skipped for " + player.getName() + " — grace expired.");
+                        continue;
+                    }
 
                     // 🕒 Check last reminder time
                     UUID uuid = player.getUniqueId();
                     long secondsElapsed = GraceReminderTracker.getSecondsSinceLastReminder(uuid);
-                    int interval = ConfigManager.getGraceReminderIntervalSeconds();
+
+                    PickYourDifficulty.debug("IntervalReminder: Checking " + player.getName()
+                            + " → last reminder " + secondsElapsed + "s ago (interval = " + intervalSeconds + "s)");
 
                     // 📦 Mini Block: Send reminder if interval exceeded
-                    if (secondsElapsed >= interval) {
+                    if (secondsElapsed >= intervalSeconds) {
+                        PickYourDifficulty.debug("IntervalReminder: Sending reminder to " + player.getName());
                         sendReminder(player);
                     }
                 }
             }
-        }.runTaskTimer(PickYourDifficulty.getInstance(), 20L, 20L * 60); // 🕐 Run every 60 seconds
+
+            // 🕐 Initial delay = 20 ticks (1s), repeat using config interval
+        }.runTaskTimer(PickYourDifficulty.getInstance(), 20L, intervalTicks);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -112,6 +159,8 @@ public class GraceReminderListener implements Listener {
         // 🧮 Convert play ticks to seconds (20 ticks = 1 second)
         long playTicks = player.getStatistic(org.bukkit.Statistic.PLAY_ONE_MINUTE);
         int playSeconds = (int) (playTicks / 20);
+
+        PickYourDifficulty.debug("GraceCheck: " + player.getName() + " → grace=" + graceTotal + "s, played=" + playSeconds + "s");
 
         return graceTotal > 0 && playSeconds < graceTotal;
     }

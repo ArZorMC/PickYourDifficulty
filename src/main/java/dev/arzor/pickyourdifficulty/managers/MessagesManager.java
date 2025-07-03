@@ -53,14 +53,17 @@ public class MessagesManager implements Reloadable {
         // 📦 Create messages.yml if it doesn’t exist
         if (!file.exists()) {
             plugin.saveResource("messages.yml", false);
+            PickYourDifficulty.debug("📨 messages.yml not found — generating default copy.");
         }
 
+        // 🧪 Load all messages into memory
         messages = YamlConfiguration.loadConfiguration(file);
+        PickYourDifficulty.debug("📨 messages.yml loaded with " + messages.getKeys(true).size() + " keys");
     }
 
     // ─────────────────────────────────────────────────────────────
-// 📨 Get Raw String by Path — with logging if missing
-// ─────────────────────────────────────────────────────────────
+    // 📨 Get Raw String by Path — with logging if missing
+    // ─────────────────────────────────────────────────────────────
 
     public static @Nonnull String get(String path) {
         // 🛡️ Ensure prefix is applied consistently
@@ -72,8 +75,8 @@ public class MessagesManager implements Reloadable {
 
         // ❗ Warn if message path is missing in messages.yml
         if (value == null) {
-            PickYourDifficulty.getInstance().getLogger().warning("⚠ Missing message key: '" + path + "'");
-            PickYourDifficulty.getInstance().getLogger().warning("⚠ Available keys: " + messages.getKeys(true));
+            plugin.getLogger().warning("⚠ Missing message key: '" + path + "'");
+            plugin.getLogger().warning("⚠ Available keys: " + messages.getKeys(true));
             return "<red>Missing message: " + path + "</red>";
         }
 
@@ -92,6 +95,7 @@ public class MessagesManager implements Reloadable {
             raw = raw.replace("<prefix>", get("prefix"));
         }
 
+        PickYourDifficulty.debug("📨 Formatting message: " + path);
         return mm.deserialize(raw);
     }
 
@@ -102,15 +106,17 @@ public class MessagesManager implements Reloadable {
     public static Component format(String path, Map<String, String> placeholders) {
         String raw = get(path);
 
+        // 🧩 Replace prefix first
         if (raw.contains("<prefix>")) {
             raw = raw.replace("<prefix>", get("prefix"));
         }
 
-        // 🔁 Replace custom placeholders like <graceTime>
+        // 🔁 Replace any other custom placeholders (e.g., <graceTime>)
         for (Map.Entry<String, String> entry : placeholders.entrySet()) {
             raw = raw.replace("<" + entry.getKey() + ">", entry.getValue());
         }
 
+        PickYourDifficulty.debug("📨 Formatting message with placeholders: " + path + " → " + placeholders);
         return mm.deserialize(raw);
     }
 
@@ -132,13 +138,16 @@ public class MessagesManager implements Reloadable {
         long ticks = player.getStatistic(Statistic.PLAY_ONE_MINUTE);
         int secondsPlayed = (int) (ticks / 20); // 🧮 20 ticks = 1 second
 
-        // ⏳ Remaining = total - elapsed (min 0)
+        // ⏳ Remaining = total - elapsed (minimum 0)
         int graceRemaining = Math.max(0, totalGrace - secondsPlayed);
 
         Map<String, String> placeholders = new HashMap<>();
         placeholders.put("difficulty", difficulty);
         placeholders.put("graceTime", String.valueOf(graceRemaining));
         placeholders.put("graceTimeTotal", String.valueOf(totalGrace));
+
+        PickYourDifficulty.debug("📨 Formatting player grace message: " + path +
+                " (played: " + secondsPlayed + "s, remaining: " + graceRemaining + "s, difficulty: " + difficulty + ")");
 
         return format(path, placeholders);
     }
@@ -147,16 +156,14 @@ public class MessagesManager implements Reloadable {
     // 💬 Format with Cooldown + Player Context
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Formats a message with player context and cooldown time placeholder.
-     * Replaces:
-     * - <player>       → player name
-     * - <prefix>       → global prefix
-     * - <cooldowntime> → cooldown time in seconds (e.g., "30s")
-     */
+    // 💬 Dynamically formats a message with:
+    //    • <player>       → Player’s name
+    //    • <prefix>       → Global prefix from messages.yml
+    //    • <cooldowntime> → Cooldown time in seconds (e.g., "30s")
     public static Component format(String path, Player player, int cooldownSeconds) {
         String raw = get(path);
 
+        // 🧩 Replace known tokens first
         if (raw.contains("<prefix>")) {
             raw = raw.replace("<prefix>", get("prefix"));
         }
@@ -165,8 +172,11 @@ public class MessagesManager implements Reloadable {
             raw = raw.replace("<cooldowntime>", cooldownSeconds + "s");
         }
 
-        // 🔁 Replace <player> and any PlaceholderAPI values
+        // 🔁 Replace PlaceholderAPI and <player> tags
         raw = TextUtil.replacePlaceholders(raw, player);
+
+        PickYourDifficulty.debug("📨 Formatting cooldown message for " + player.getName() + ": " +
+                cooldownSeconds + "s → " + path);
 
         return mm.deserialize(raw);
     }
@@ -179,7 +189,8 @@ public class MessagesManager implements Reloadable {
     public void reload() {
         File file = new File(PickYourDifficulty.getInstance().getDataFolder(), "messages.yml");
         messages = YamlConfiguration.loadConfiguration(file);
-        plugin.getLogger().info("✅ Loaded message keys: " + messages.getKeys(true));
 
+        plugin.getLogger().info("✅ Loaded message keys: " + messages.getKeys(true));
+        PickYourDifficulty.debug("♻️ MessagesManager.reload() completed");
     }
 }

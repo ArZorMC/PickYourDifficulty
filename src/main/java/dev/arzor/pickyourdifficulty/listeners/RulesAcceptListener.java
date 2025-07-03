@@ -6,6 +6,7 @@
 
 package dev.arzor.pickyourdifficulty.listeners;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.managers.ConfigManager;
 import dev.arzor.pickyourdifficulty.managers.GUIManager;
 import dev.arzor.pickyourdifficulty.managers.PlayerDataManager;
@@ -18,6 +19,15 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.logging.Level;
+
+// ─────────────────────────────────────────────────────────────
+// 📜 RulesAcceptListener — Handles AcceptTheRules hook
+// ─────────────────────────────────────────────────────────────
+// This listener:
+//  • Registers dynamically if AcceptTheRules is installed
+//  • Listens reflectively for PlayerAcceptRulesEvent
+//  • Opens the difficulty GUI after rules are accepted
 public class RulesAcceptListener implements Listener {
 
     // ╔════════════════════════════════════════════════════════════════════╗
@@ -41,6 +51,12 @@ public class RulesAcceptListener implements Listener {
 
         if (enabled) {
             Bukkit.getPluginManager().registerEvents(this, plugin);
+
+            // 🧪 Debug: Listener registered successfully
+            PickYourDifficulty.debug("RulesAcceptListener enabled (AcceptTheRules detected + config enabled).");
+        } else {
+            // 🧪 Debug: Listener not registered due to missing plugin or config
+            PickYourDifficulty.debug("RulesAcceptListener disabled (plugin not detected or config disabled).");
         }
     }
 
@@ -61,21 +77,39 @@ public class RulesAcceptListener implements Listener {
     // ─────────────────────────────────────────────────────────────
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPossibleAcceptRules(Event event) {
+        // 🚫 Skip if integration wasn't enabled
         if (!enabled) return;
 
-        // 📦 Match event class name (reflection)
+        // 📦 Match event class name (via reflection)
         if (event.getClass().getName().equals("me.rubix327.accepttherules.api.PlayerAcceptRulesEvent")) {
+
+            // 🧪 Debug: Event detected
+            PickYourDifficulty.debug("AcceptTheRules event detected via reflection.");
+
             try {
-                // 🪪 Grab Player object via reflection
+                // 🪪 Extract Player object via reflective call
                 Player player = (Player) event.getClass().getMethod("getPlayer").invoke(event);
+
+                // 🧪 Debug: Player confirmed
+                PickYourDifficulty.debug("Player accepted rules: " + player.getName());
 
                 // 🔐 Only open GUI if not already selected
                 if (!dataManager.hasSelectedDifficulty(player)) {
                     guiManager.openDifficultyGUI(player);
+
+                    // 🧪 Debug: GUI opened
+                    PickYourDifficulty.debug("Difficulty GUI opened for " + player.getName());
+                } else {
+                    // 🧪 Debug: Player already has a difficulty
+                    PickYourDifficulty.debug("No GUI opened — " + player.getName() + " already selected a difficulty.");
                 }
 
             } catch (Exception ex) {
+                // ❌ Handle unexpected reflection failures
                 plugin.getLogger().warning("❌ Failed to handle AcceptTheRules event: " + ex.getMessage());
+
+                // 🧪 Robust debug logging
+                plugin.getLogger().log(Level.SEVERE, "Stack trace for AcceptTheRules failure:", ex);
             }
         }
     }

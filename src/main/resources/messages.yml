@@ -139,7 +139,7 @@ messages:
   pyd.holograms-toggled: "<prefix><gray>Toggled hologram display. (not implemented)"
   pyd.only-players: "<prefix><red>Only players can use this command."
 
-  # ╔═══🐞 /pyddebug output═══════════════════════════════════════════════╗
+  # ╔═══🧪 /pyddebug output═══════════════════════════════════════════════╗
   debug.no-permission: "<prefix><red>You do not have permission to use this command."
   debug.prefix: "<aqua>⛏️ <bold>PickYourDifficulty Debug Info</bold>"
   debug.online-players: "<gray>• Online players: <yellow><count>"

@@ -77,6 +77,9 @@ public class HologramManager {
         trackedData.put(itemId, new TrackedHologram(itemId, expiresAt));
         hologramData.set(itemId + ".expiresAt", expiresAt);
         saveHologramFile();
+
+        // 🐛 Debug
+        PickYourDifficulty.debug("📌 Created hologram for item " + itemId + " — expires in " + despawnSeconds + "s");
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -84,6 +87,7 @@ public class HologramManager {
     // ─────────────────────────────────────────────────────────────
 
     public static void updateHologram(Item item) {
+        UUID id = item.getUniqueId();
         Hologram hologram = hologramMap.get(item.getUniqueId());
         TrackedHologram data = trackedData.get(item.getUniqueId());
         if (hologram == null || data == null) return;
@@ -97,6 +101,9 @@ public class HologramManager {
         String raw = ConfigManager.getHologramFormat();
         String updated = raw.replace("<despawnTime>", String.valueOf(secondsLeft));
         DHAPI.setHologramLine(hologram, 0, updated);
+
+        // 🐛 Debug
+        PickYourDifficulty.debug("🔄 Updated hologram for item " + id + " — " + secondsLeft + "s remaining");
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -114,6 +121,7 @@ public class HologramManager {
 
         if (hologram != null) {
             hologram.delete();
+            PickYourDifficulty.debug("🗑️ Removed hologram for item " + id);
         }
 
         saveHologramFile();
@@ -127,12 +135,16 @@ public class HologramManager {
         for (Hologram holo : hologramMap.values()) {
             holo.delete();
         }
+
         hologramMap.clear();
         trackedData.clear();
 
         // 🧹 Clear YAML entries
         hologramData.getKeys(false).forEach(key -> hologramData.set(key, null));
         saveHologramFile();
+
+        // 🐛 Debug
+        PickYourDifficulty.debug("🧹 Removed all active holograms and cleared storage");
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -154,6 +166,8 @@ public class HologramManager {
                 }
 
                 trackedData.put(itemId, new TrackedHologram(itemId, expiresAt));
+                PickYourDifficulty.debug("📦 Restored hologram tracking for item " + itemId + " (expires in " + ((expiresAt - now) / 1000) + "s)");
+
                 // 💡 Hologram will be spawned later via HologramTaskManager
             } catch (Exception e) {
                 PickYourDifficulty.getInstance().getLogger().warning("[PickYourDifficulty] Skipping invalid hologram entry: " + key);
@@ -171,11 +185,9 @@ public class HologramManager {
         UUID id = player.getUniqueId();
 
         // 🧠 Default to config value if not explicitly toggled
-        if (!toggleData.contains("toggles." + id)) {
-            return !ConfigManager.hologramsDefaultEnabled();
-        }
-
-        return toggleData.getBoolean("toggles." + id);
+        return toggleData.contains("toggles." + id)
+                ? toggleData.getBoolean("toggles." + id)
+                : !ConfigManager.hologramsDefaultEnabled(); // 💡 Default from config
     }
 
     public static void setHidden(Player player, boolean hidden) {
@@ -189,11 +201,19 @@ public class HologramManager {
 
         toggleData.set("toggles." + id, hidden);
         saveToggleFile();
+
+        PickYourDifficulty.debug("👁️ Set hologram toggle for " + player.getName() + ": " + (hidden ? "HIDDEN" : "VISIBLE"));
     }
 
     public static boolean toggleHidden(Player player) {
+        // 💡 Flip current visibility state
         boolean nowHidden = !isHidden(player);
+
+        // 📥 Apply the new state
         setHidden(player, nowHidden);
+
+        // 🧪 Debug: log toggle action
+        PickYourDifficulty.debug("🔁 Toggled hologram view for " + player.getName() + " → " + (nowHidden ? "HIDDEN" : "VISIBLE"));
         return nowHidden;
     }
 

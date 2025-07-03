@@ -21,12 +21,22 @@ import org.bukkit.metadata.MetadataValue;
 
 import java.util.UUID;
 
+// ─────────────────────────────────────────────────────────────
+// 🧩 DespawnTimerListener — Customizes item despawn time
+// ─────────────────────────────────────────────────────────────
+// This listener sets a custom despawn timer on items that spawn
+// into the world. It supports two pathways:
+//
+// - 🪦 Death drops → Tagged via DeathDropListener
+// - 🎯 Manual drops → Tracked via PlayerDropItemListener
+//
+// ✅ Custom timers are based on player difficulty
+// ⏳ Uses ticksLived offset trick to set despawn logic
+// 🔒 Optionally prevents downgrading below vanilla 6000 ticks
 public class DespawnTimerListener implements Listener {
 
+    // 🧠 Storage system that maps player UUIDs to difficulty levels
     private final PlayerDifficultyStorage difficultyStorage;
-
-    // ⏳ Default vanilla despawn timer is 6000 ticks = 5 minutes
-    private static final int DEFAULT_DESPAWN_TICKS = 6000;
 
     public DespawnTimerListener(PlayerDifficultyStorage difficultyStorage) {
         this.difficultyStorage = difficultyStorage;
@@ -42,46 +52,83 @@ public class DespawnTimerListener implements Listener {
         Item itemEntity = event.getEntity();
         ItemStack itemStack = itemEntity.getItemStack();
 
+        // 🧪 Debug: Show item spawn info
+        PickYourDifficulty.debug("ItemSpawnEvent: " + itemStack.getAmount() + "x " + itemStack.getType());
+
         // 📌 Check for deathdrop tag or metadata-based despawn time
         boolean isDeathDrop = DeathDropListener.isDeathDrop(itemEntity);
         int taggedDespawn = PlayerDropItemListener.getSavedDespawnSeconds(itemEntity);
+        long previousPickup = PlayerDropItemListener.getSavedPickupTime(itemEntity);
 
-        // 📦 Mini Block: Skip if config restricts to deathdrops only
+        // 🧪 Debug: Deathdrop & tagged info
+        PickYourDifficulty.debug(" - isDeathDrop: " + isDeathDrop + ", taggedDespawn: " + taggedDespawn + ", pickupTime: " + previousPickup);
+
+        // 📛 Skip if config restricts to deathdrops only, and this item is neither
         if (ConfigManager.despawnOnlyAffectsDeathDrops() && !isDeathDrop && taggedDespawn <= 0) {
+            PickYourDifficulty.debug(" - Skipped: Not a deathdrop and no manual tag, config restricts.");
             return;
         }
 
+        // ╔═══⏲️ Determine Despawn Time═════════════════════════════════════════════════════════════╗
+
         int customSeconds;
 
-        // 📦 Mini Block: Use manually tagged time if present
+        // 📦 Use manually tagged time if present
         if (taggedDespawn > 0) {
             customSeconds = taggedDespawn;
-        } else {
-            // 📦 Mini Block: Fallback — use dropper's difficulty
-            UUID dropperUuid = getDropperUuid(itemEntity);
-            if (dropperUuid == null) return;
+            PickYourDifficulty.debug(" - Using manually tagged despawn time: " + customSeconds + "s");
 
+        } else {
+            // 📦 Otherwise, fall back to dropper's difficulty
+            UUID dropperUuid = getDropperUuid(itemEntity);
+
+            // ❌ If no UUID, skip
+            if (dropperUuid == null) {
+                PickYourDifficulty.debug(" - Skipped: No dropper UUID found in metadata.");
+                return;
+            }
+
+            // 🧠 Lookup dropper's difficulty and get their custom despawn time
             String difficulty = difficultyStorage.getDifficulty(Bukkit.getOfflinePlayer(dropperUuid));
             customSeconds = ConfigManager.getDespawnTime(difficulty);
+
+            PickYourDifficulty.debug(" - Using dropper difficulty '" + difficulty + "' → " + customSeconds + "s");
         }
+
+        // ╔═══🧮 Convert Seconds to Ticks════════════════════════════════════════════════════════════╗
 
         // 🧮 Convert seconds to ticks (1 second = 20 ticks)
         int customTicks = customSeconds * 20;
 
-        // 🚫 Do not allow reducing timer below vanilla unless config allows
-        if (ConfigManager.preventDespawnTimerDowngrade() && customTicks < DEFAULT_DESPAWN_TICKS) {
-            return;
+        // ╔═══🔐 Downgrade Protection Logic═════════════════════════════════════════════════════════╗
+
+        if (ConfigManager.preventDespawnTimerDowngrade()) {
+
+            // 🕓 Time since previous pickup (in milliseconds)
+            long now = System.currentTimeMillis();
+            // ⛔ Skip downgrade: Item was held recently AND had a longer timer applied
+            long heldMillis = (previousPickup > 0) ? now - previousPickup : Long.MAX_VALUE;
+
+            // 🧮 Convert threshold to milliseconds
+            long thresholdMillis = ConfigManager.ownershipTransferThresholdSeconds() * 1000L;
+
+            // ✅ Ownership has not yet transferred — treat previous timer as protected
+            if (heldMillis < thresholdMillis && itemEntity.getTicksLived() < 0) {
+                PickYourDifficulty.debug(" - Skipped: Preventing downgrade, held for only " + heldMillis + "ms < " + thresholdMillis + "ms");
+                return;
+            }
         }
 
-        // 🧠 Trick: Setting negative age offsets despawn logic to start from customTicks
+        // 🧠 Trick: Setting a negative age offsets internal despawn countdown
+        // This effectively resets the despawn time to customTicks
         itemEntity.setTicksLived(-customTicks);
 
-        // 🧪 Log the change if debug is enabled
-        if (ConfigManager.isDebugMode()) {
-            PickYourDifficulty.getInstance().getLogger().info("[PickYourDifficulty] Custom despawn: "
-                    + itemStack.getAmount() + "x " + itemStack.getType()
-                    + " → " + customSeconds + "s");
-        }
+        // 📣 Log result
+        PickYourDifficulty.debug(" - Custom despawn timer applied: " + customTicks + " ticks (" + customSeconds + "s)");
+
+        // 🧪 Optional verbose log to console
+        PickYourDifficulty.debug("Custom despawn: " + itemStack.getAmount() + "x " + itemStack.getType()
+                + " → " + customSeconds + "s");
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -98,6 +145,7 @@ public class DespawnTimerListener implements Listener {
             }
         }
 
+        // ❌ No valid UUID found
         return null;
     }
 }

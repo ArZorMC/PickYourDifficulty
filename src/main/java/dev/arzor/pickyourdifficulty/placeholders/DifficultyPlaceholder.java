@@ -6,6 +6,7 @@
 
 package dev.arzor.pickyourdifficulty.placeholders;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.managers.ConfigManager;
 import dev.arzor.pickyourdifficulty.managers.PlayerDataManager;
 
@@ -15,37 +16,28 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * 📦 Handles dynamic placeholder values like:
- *   - %pickyourdifficulty_difficulty%
- *   - %pickyourdifficulty_despawn_seconds%
- *   - %pickyourdifficulty_grace_seconds%
- */
+// ─────────────────────────────────────────────────────────────
+// 🧭 Placeholder Expansion: Registers dynamic PAPI variables
+// ─────────────────────────────────────────────────────────────
 public class DifficultyPlaceholder extends PlaceholderExpansion {
 
-    // 🔗 Link to player data manager (for difficulty queries)
+    // ╔═══📦 Dependency: Player Data Access═════════════════════════════╗
     private final PlayerDataManager playerDataManager;
 
     // ─────────────────────────────────────────────────────────────
     // 🏗️ Constructor
     // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Injects the PlayerDataManager used for difficulty lookups.
-     *
-     * @param playerDataManager Reference to active data manager
-     */
     public DifficultyPlaceholder(PlayerDataManager playerDataManager) {
         this.playerDataManager = playerDataManager;
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 📛 Expansion Metadata
+    // 🏷️ Placeholder Expansion Metadata
     // ─────────────────────────────────────────────────────────────
 
     @Override
     public @NotNull String getIdentifier() {
-        return "pickyourdifficulty"; // Root name for all placeholders
+        return "pickyourdifficulty"; // Prefix for all %pickyourdifficulty_*% variables
     }
 
     @Override
@@ -64,41 +56,63 @@ public class DifficultyPlaceholder extends PlaceholderExpansion {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🧠 Placeholder Resolver
+    // 🔄 Placeholder Request Handler
     // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Resolves placeholder values per player.
-     *
-     * @param player     OfflinePlayer to query
-     * @param identifier The placeholder name (e.g., "difficulty")
-     * @return The resolved string or null if unrecognized
-     */
     @Override
     public String onRequest(OfflinePlayer player, @NotNull String identifier) {
+
+        // ❌ Reject null or offline players
         if (player == null || !player.isOnline()) return "";
 
-        // ✅ Ensure player is online before casting
+        // 💬 Get Player instance (safe cast)
         Player online = player.getPlayer();
         if (online == null) return ""; // Defensive null check
 
-        // 📥 Fetch difficulty (or fallback if missing)
+        // 📥 Load stored difficulty for this player
         String difficulty = playerDataManager.getDifficultyStorage().getDifficulty(online);
+        boolean usedFallback = false;
+
+        // ⛑ Use fallback if difficulty not found
         if (difficulty == null) {
             difficulty = ConfigManager.getFallbackDifficulty();
+            usedFallback = true;
         }
 
-        // 📦 Map placeholders to data
+        // 🧪 Log resolved difficulty and fallback usage
+        PickYourDifficulty.debug("📦 PlaceholderAPI → " + online.getName()
+                + " resolved difficulty = " + difficulty + (usedFallback ? " (fallback used)" : ""));
+
+        // 🧩 Process each supported placeholder
         return switch (identifier.toLowerCase()) {
-            case "difficulty" -> difficulty;
 
-            case "despawn_seconds" ->
-                    String.valueOf(ConfigManager.getDespawnTime(difficulty));
+            // ╔═══📛 %pickyourdifficulty_difficulty%════════════════════════════════════╗
+            case "difficulty" -> {
+                // 🧪 Log request
+                PickYourDifficulty.debug("📛 Resolving placeholder: %difficulty% → " + difficulty);
+                yield difficulty;
+            }
 
-            case "grace_seconds" ->
-                    String.valueOf(ConfigManager.getGraceTime(difficulty));
+            // ╔═══⏱️ %pickyourdifficulty_despawn_seconds%══════════════════════════════╗
+            case "despawn_seconds" -> {
+                // ⏱ Get despawn time in seconds for this difficulty
+                int seconds = ConfigManager.getDespawnTime(difficulty);
+                PickYourDifficulty.debug("⏱️ Resolving placeholder: %despawn_seconds% → " + seconds);
+                yield String.valueOf(seconds);
+            }
 
-            default -> null; // ❓ Unknown placeholder
+            // ╔═══🛡️ %pickyourdifficulty_grace_seconds%════════════════════════════════╗
+            case "grace_seconds" -> {
+                // 🛡 Get grace time in seconds for this difficulty
+                int seconds = ConfigManager.getGraceTime(difficulty);
+                PickYourDifficulty.debug("🛡️ Resolving placeholder: %grace_seconds% → " + seconds);
+                yield String.valueOf(seconds);
+            }
+
+            // ╔═══❓ Unknown placeholder═══════════════════════════════════════════════╗
+            default -> {
+                PickYourDifficulty.debug("❓ Unknown placeholder requested: " + identifier);
+                yield null;
+            }
         };
     }
 }

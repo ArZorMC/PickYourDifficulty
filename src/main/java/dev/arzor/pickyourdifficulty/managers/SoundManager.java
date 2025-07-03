@@ -18,19 +18,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 // ─────────────────────────────────────────────────────────────
-// 🎵 Sound Playback Manager — Handles config + Geyser support
+// 🎵 SoundManager — Handles config sound playback + Geyser support
 // ─────────────────────────────────────────────────────────────
-
 public class SoundManager {
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔊 GUI + Action Sound Triggers
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🔊 GUI + Action Sound Triggers════════════════════════════════╗
 
-    /**
-     * 🔊 Plays sound when GUI is opened
-     */
     public static void playGuiOpenSound(Player player) {
+        // 📦 Plays GUI Open sound (e.g. Button Click)
         playFromConfig(
                 player,
                 ConfigManager.getGuiOpenSoundKey(),
@@ -40,10 +35,8 @@ public class SoundManager {
         );
     }
 
-    /**
-     * 🔊 Plays sound when difficulty is confirmed
-     */
     public static void playConfirmSound(Player player) {
+        // 📦 Plays confirmation sound (e.g. EXP Pickup)
         playFromConfig(
                 player,
                 ConfigManager.getConfirmSoundKey(),
@@ -53,10 +46,8 @@ public class SoundManager {
         );
     }
 
-    /**
-     * 🔊 Plays sound when action is cancelled
-     */
     public static void playCancelSound(Player player) {
+        // 📦 Plays cancel/back sound (e.g. low-pitch bass)
         playFromConfig(
                 player,
                 ConfigManager.getCancelSoundKey(),
@@ -66,12 +57,8 @@ public class SoundManager {
         );
     }
 
-    /**
-     * 🔒 Plays denial sound for cooldown or locked difficulty
-     */
     public static void playDeniedSound(Player player, boolean isLocked) {
-
-        // 📦 Choose config values depending on denial reason
+        // 📦 Plays either locked-denied or cooldown-denied sound
         if (isLocked) {
             playFromConfig(
                     player,
@@ -91,102 +78,91 @@ public class SoundManager {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🚀 Central Sound Dispatch Logic
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🚀 Central Sound Dispatch Logic═══════════════════════════════╗
 
-    /**
-     * 📦 Plays a sound with optional Geyser-safe fallback
-     *
-     * @param player   Player to hear the sound
-     * @param key      Sound name from config (e.g. "BLOCK_NOTE_BLOCK_BASS")
-     * @param volume   Configured volume (0.0 to 1.0+)
-     * @param pitch    Configured pitch (0.5 to 2.0 typical)
-     * @param fallback Fallback Bukkit sound enum if resolution fails
-     */
     public static void playFromConfig(Player player, String key, float volume, float pitch, Sound fallback) {
+        // 🎯 Try to resolve the sound from config
         Sound resolved = resolveSound(key, fallback);
 
         // 🌉 Apply override if Geyser support is enabled
         Sound finalSound = getCompatibleSound(resolved);
 
-        // 🎧 Dispatch actual sound to player
+        // 🧪 Debug: Log playback details
+        PickYourDifficulty.debug("🎵 Playing sound for " + player.getName()
+                + " → '" + finalSound + "' (volume: " + volume + ", pitch: " + pitch + ")");
+
+        // 🎧 Actually dispatch the sound to the player
         SoundUtil.play(player, finalSound, volume, pitch);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧩 Sound Resolver (String to Sound)
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🧩 Sound Resolver (Config Key → Sound Enum)════════════════════╗
 
-    /**
-     * Attempts to convert a string into a Bukkit Sound.
-     *
-     * @param key      Raw string from config
-     * @param fallback Default if invalid
-     * @return Sound enum (or fallback)
-     */
     public static Sound resolveSound(String key, Sound fallback) {
+
+        // 🧼 Exit early if blank or null, use the fallback immediately
+        if (key == null || key.isBlank()) return fallback;
+
         try {
-            // Convert config string to namespaced Minecraft key
-            NamespacedKey namespaced = NamespacedKey.minecraft(key.toLowerCase());
-            Sound sound = Registry.SOUNDS.get(namespaced);
+            // 🧪 Log resolution attempt
+            PickYourDifficulty.debug("🔍 Resolving sound from config: '" + key + "'");
 
-            // ✅ Return resolved sound if valid
-            if (sound != null) return sound;
+            // 🧼 Normalize to lowercase and trim extra spaces
+            // ⚠ Sound keys in Registry are always lowercase (e.g. "block.note_block.pling")
+            NamespacedKey namespacedKey = NamespacedKey.minecraft(key.trim().toLowerCase());
 
-        } catch (Exception ignored) {
-            // 🧼 Fail silently if badly formatted
+            // 🗂️ Look up the Sound from Bukkit's registry
+            Sound resolved = Registry.SOUNDS.get(namespacedKey);
+
+            // ✅ Return resolved sound if found
+            if (resolved != null) return resolved;
+
+        } catch (Exception ex) {
+            // 🧼 Ignore any malformed keys or unknown sound formats
         }
 
-        // ⚠ Warn and fall back
+        // ⚠ If resolution failed, warn and use fallback
         PickYourDifficulty.getInstance().getLogger().warning("⚠ Invalid sound name in config: '" + key + "'");
         return fallback;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🌉 Geyser Compatibility
-    // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Applies Bedrock-compatible override if enabled
-     *
-     * @param original Java Edition sound
-     * @return Possibly overridden Bedrock-safe sound
-     */
+    // ╔═══🌉 Geyser Compatibility Override═══════════════════════════════╗
+
     public static Sound getCompatibleSound(Sound original) {
+        // 💬 If Geyser support is disabled, return sound unchanged
         if (!ConfigManager.enableGeyserSupport()) return original;
 
-        // Extract namespaced key of the original sound
+        // 📦 Get the registry key of the original sound
         NamespacedKey key = Registry.SOUNDS.getKey(original);
 
-        // Look up override from config map
+        // 🔎 Look for override mapping based on config map (uppercased)
         String overrideName = (key != null) ? getGeyserSoundOverrides().get(key.value().toUpperCase()) : null;
 
         // ❌ No override defined — fallback to original
         if (overrideName == null) return original;
 
         try {
+            // 🧼 Normalize override and resolve it
             NamespacedKey overrideKey = NamespacedKey.minecraft(overrideName.toLowerCase());
             Sound override = Registry.SOUNDS.get(overrideKey);
 
-            if (override != null) return override;
+            if (override != null) {
+            // 🧪 Log override applied
+                PickYourDifficulty.debug("🌉 Geyser override applied: '" + key.value() + "' → '" + overrideName + "'");
+                return override;
+            }
 
         } catch (Exception e) {
+            // ⚠ Log issue with override name
             PickYourDifficulty.getInstance().getLogger().warning("⚠ Invalid Geyser override sound: " + overrideName);
         }
 
+        // 🔁 Fall back to original if resolution failed
         return original;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🗺️ Geyser Override Map Reader
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🗺️ Geyser Sound Override Map═══════════════════════════════════╗
 
-    /**
-     * Reads geyserOverrides section from config and builds lookup map
-     *
-     * @return Map of UPPERCASE Java sound → Bedrock-safe override
-     */
     public static Map<String, String> getGeyserSoundOverrides() {
         Map<String, String> overrides = new HashMap<>();
 
@@ -195,11 +171,15 @@ public class SoundManager {
             for (String javaSound : section.getKeys(false)) {
                 String override = section.getString(javaSound);
 
-                // ✅ Only add valid entries
+                // ✅ Only include valid, non-empty values
                 if (override != null && !override.isEmpty()) {
+                    // 💬 Store keys in UPPERCASE to avoid case sensitivity issues
                     overrides.put(javaSound.toUpperCase(), override.toUpperCase());
                 }
             }
+
+            // 🧪 Log count of loaded overrides
+            PickYourDifficulty.debug("🎧 Loaded " + overrides.size() + " Geyser sound overrides");
         }
 
         return overrides;

@@ -16,16 +16,25 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
+// ─────────────────────────────────────────────────────────────
+// 🎮 Main plugin entry point
+// ─────────────────────────────────────────────────────────────
 public final class PickYourDifficulty extends JavaPlugin {
 
     // ─────────────────────────────────────────────────────────────
     // 🧱 Singleton Plugin Instance and Core Managers
     // ─────────────────────────────────────────────────────────────
 
+    // 💾 Holds the active instance of this plugin for global access
     private static PickYourDifficulty instance;
 
+    // 🧠 Stores persistent player difficulty data (disk + memory)
     private PlayerDifficultyStorage difficultyStorage;
+
+    // 🔁 Tracks player session data, cooldowns, etc
     private PlayerDataManager playerDataManager;
+
+    // 🖼️ Manages difficulty selection and confirmation GUIs
     private GUIManager guiManager;
 
     // ─────────────────────────────────────────────────────────────
@@ -34,64 +43,83 @@ public final class PickYourDifficulty extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        // 💾 Store static instance for global access
+        // 💬 Save this instance for static access across plugin
         instance = this;
     }
 
-    // ─────────────────────────────────────────────────────────────
+    /// ─────────────────────────────────────────────────────────────
     // ▶️ Plugin Lifecycle — onEnable()
     // ─────────────────────────────────────────────────────────────
 
     @Override
     public void onEnable() {
 
-        // ╔═══📦 Load Configuration Files═════════════════════════════╗
+        // ╔═══📦 Load Config & Messages════════════════════════════════╗
+        // 🧾 Initialize messages first so we can send localized errors if config fails
         MessagesManager.init(this);
+
+        // ⚙️ Load config.yml and apply defaults
         ConfigManager.init(this);
 
-        // ╔═══🔧 Initialize Core Managers═════════════════════════════╗
+        // ╔═══🧠 Load Player Data═══════════════════════════════════════╗
+        // 💾 Load previously stored difficulties from disk
         difficultyStorage = PlayerDifficultyStorage.getInstance();
         difficultyStorage.loadFromDisk();
 
+        // 🧑‍💻 Build session manager on top of stored data
         playerDataManager = new PlayerDataManager(difficultyStorage);
+
+        // 🎨 Load GUI templates and prepare menus
         guiManager = GUIManager.getInstance();
 
-        // ╔═══🧠 Load Cooldown Tracking Data══════════════════════════╗
+        // ╔═══⏳ Load Cooldowns═════════════════════════════════════════╗
         CooldownTracker.loadFromDisk();
 
         // ╔═══🎧 Register Event Listeners═════════════════════════════╗
-        // 👋 Join and GUI setup
+
+        // 👋 Handle join + GUI open
         getServer().getPluginManager().registerEvents(new JoinListener(guiManager, playerDataManager), this);
 
-        // 🧱 Core gameplay logic
+        // 💀 Track deaths and save item drops
         getServer().getPluginManager().registerEvents(new DeathDropListener(), this);
+
+        // ⏲️ Show hologram timers for dropped items
         getServer().getPluginManager().registerEvents(new DespawnTimerListener(difficultyStorage), this);
+
+        // 🛡️ Warn when grace period is ending
         getServer().getPluginManager().registerEvents(new GraceReminderListener(difficultyStorage), this);
+
+        // 🛡️ Prevent damage during grace period
         getServer().getPluginManager().registerEvents(new GraceProtectionListener(difficultyStorage), this);
+
+        // 🎒 Store dropped items before despawn
         getServer().getPluginManager().registerEvents(new ItemPickupListener(), this);
         getServer().getPluginManager().registerEvents(new PlayerDropItemListener(), this);
 
-        // 🖱️ GUI click handling
-        getServer().getPluginManager().registerEvents(new GUIClickListener(guiManager, playerDataManager, getLogger()), this);
+        // 🖱️ GUI click handling (main + confirm)
+        getServer().getPluginManager().registerEvents(new GUIClickListener(guiManager, playerDataManager), this);
         getServer().getPluginManager().registerEvents(new ConfirmGUIClickListener(guiManager), this);
 
-        // 📜 AcceptTheRules hook — registers itself if plugin is present
+        // 📜 AcceptTheRules integration auto-registers listener
         new RulesAcceptListener(this, guiManager, playerDataManager);
 
-        // ╔═══💬 Register Commands════════════════════════════════════╗
+        // ╔═══💬 Register Commands═════════════════════════════════════╗
+
+        // 🧭 /pyd — Opens GUI, sets difficulty
         PluginCommand pydCmd = getCommand("pyd");
         if (pydCmd != null) {
             pydCmd.setExecutor(new CommandPyd());
-            // 🎮 /pyd — Main player-facing command for difficulty GUI and settings
         }
 
+        // 🧪 /pyddebug — Shows debug info for devs
         PluginCommand debugCmd = getCommand("pyddebug");
         if (debugCmd != null) {
             debugCmd.setExecutor(new CommandPydDebug());
-            // 🐞 /pyddebug — Developer/debugging tools and data inspection
         }
 
-        // ╔═══🔤 PlaceholderAPI Integration═══════════════════════════╗
+        // ╔═══🔌 External Integrations═════════════════════════════════╗
+
+        // 🔤 PlaceholderAPI (placeholder registration)
         if (ConfigManager.enablePlaceholderAPI()) {
             if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
                 dev.arzor.pickyourdifficulty.placeholders.PlaceholderRegistrar.register(playerDataManager);
@@ -101,7 +129,7 @@ public final class PickYourDifficulty extends JavaPlugin {
             }
         }
 
-        // ╔═══📜 AcceptTheRules Integration═══════════════════════════╗
+        // 📜 AcceptTheRules (auto GUI on rule accept)
         if (ConfigManager.autoOpenAfterRules()) {
             if (Bukkit.getPluginManager().isPluginEnabled("AcceptTheRules")) {
                 getLogger().info("📜 AcceptTheRules detected - Rules support enabled.");
@@ -110,14 +138,14 @@ public final class PickYourDifficulty extends JavaPlugin {
             }
         }
 
-        // ╔═══📱 Geyser Integration (proxy-assumed) ══════════════════╗
+        // 📱 Geyser (Bedrock support via proxy)
         if (ConfigManager.enableGeyserSupport()) {
             getLogger().info("📱 Geyser support is ENABLED in config. Assuming Geyser is installed on the proxy.");
             getLogger().info("    📢 If using Geyser, ensure it is installed on your PROXY (e.g., Velocity or BungeeCord),");
             getLogger().info("    as it will not appear in this server's plugin list.");
         }
 
-        // ╔═══🔮 DecentHolograms Integration══════════════════════════╗
+        // 🔮 DecentHolograms (visual timers)
         if (ConfigManager.hologramsEnabled()) {
             if (Bukkit.getPluginManager().isPluginEnabled("DecentHolograms")) {
                 getLogger().info("🔮 DecentHolograms detected – Hologram support enabled.");
@@ -126,13 +154,16 @@ public final class PickYourDifficulty extends JavaPlugin {
             }
         }
 
-        // ╔═══💡 Restore Despawn Holograms════════════════════════════╗
+        // ╔═══💡 Visual Restore + Task Start═══════════════════════════╗
+
+        // 🔄 Restore dropped item holograms from memory
         HologramManager.restoreAll();
 
-        // ╔═══⏲️ Start Hologram Update Task═══════════════════════════╗
+        // 🔁 Start recurring update task
         HologramTaskManager.start(this);
 
-        getLogger().info("✅ PickYourDifficulty has been enabled.  Ready for players!");
+        // ✅ Final enable log
+        getLogger().info("✅ PickYourDifficulty has been enabled. Ready for players!");
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -149,6 +180,7 @@ public final class PickYourDifficulty extends JavaPlugin {
         CooldownTracker.saveToDisk();
         PlayerDifficultyStorage.getInstance().saveToDisk();
 
+        // ❌ Final disable log
         getLogger().info("❌ PickYourDifficulty has been disabled.");
     }
 
@@ -156,19 +188,36 @@ public final class PickYourDifficulty extends JavaPlugin {
     // 🧭 Getters for Managers and Instance
     // ─────────────────────────────────────────────────────────────
 
+    // 💬 Access plugin instance from anywhere
     public static PickYourDifficulty getInstance() {
         return instance;
     }
 
+    // 💬 Access GUI manager for menu display
     public GUIManager getGuiManager() {
         return guiManager;
     }
 
+    // 💬 Access session + stats manager
     public PlayerDataManager getPlayerDataManager() {
         return playerDataManager;
     }
 
+    // 💬 Access difficulty storage system
     public PlayerDifficultyStorage getPlayerDifficultyStorage() {
         return difficultyStorage;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 🪵 Debug Logger — Global debug print controlled by config
+    // ─────────────────────────────────────────────────────────────
+
+    // 💬 Logs debug output to console if debug mode is enabled
+    // ✅ Usage: PickYourDifficulty.debug("Something happened!");
+    // 🪵 Prefix is auto-added for consistency/
+    public static void debug(String message) {
+        if (ConfigManager.isDebugMode()) {
+            instance.getLogger().info("[PickYourDifficulty] [DEBUG] " + message);
+        }
     }
 }

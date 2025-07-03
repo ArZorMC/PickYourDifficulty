@@ -19,145 +19,124 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+// ─────────────────────────────────────────────────────────────
+// 🧠 PlayerDifficultyStorage — Runtime difficulty state tracker
+// ─────────────────────────────────────────────────────────────
 public class PlayerDifficultyStorage {
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧩 Singleton Instance
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🔁 Singleton Access═════════════════════════════════════════════╗
 
-    /** Static instance of this class (used globally via getInstance) */
+    // 🧩 Static singleton instance for global access
     private static final PlayerDifficultyStorage instance = new PlayerDifficultyStorage();
 
-    /** Returns the singleton instance */
+    // 🪪 Accessor for singleton instance
     public static PlayerDifficultyStorage getInstance() {
         return instance;
     }
 
-    /** Private constructor to prevent instantiation elsewhere */
+    // 🔒 Prevent external instantiation
     private PlayerDifficultyStorage() {}
 
-    // ─────────────────────────────────────────────────────────────
-    // 🗺️ Difficulty Map
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🗺️ Internal Difficulty Map═════════════════════════════════════╗
 
-    /** Internal memory map storing UUID → difficulty key */
+    // 🗺️ Maps player UUID to selected difficulty key from config
     private final Map<UUID, String> difficultyMap = new HashMap<>();
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔍 Get Difficulty
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🔍 Get Difficulty — fallback if not set════════════════════════════╗
 
-    /**
-     * Gets the selected difficulty for a player, falling back if unset.
-     *
-     * @param player The online Player
-     * @return Difficulty string key
-     */
     public String getDifficulty(Player player) {
-        return difficultyMap.getOrDefault(player.getUniqueId(), ConfigManager.getFallbackDifficulty());
+        UUID uuid = player.getUniqueId();
+
+        // 🪂 Fallback to default if player has no set difficulty
+        String difficulty = difficultyMap.getOrDefault(uuid, ConfigManager.getFallbackDifficulty());
+
+        // 🧪 Debug output if enabled
+        PickYourDifficulty.debug("🔍 Retrieved difficulty for " + player.getName() + " → " + difficulty);
+        return difficulty;
     }
 
-    /**
-     * Gets the selected difficulty for an OfflinePlayer.
-     *
-     * @param offlinePlayer The offline player
-     * @return Difficulty string key
-     */
     public String getDifficulty(OfflinePlayer offlinePlayer) {
-        return difficultyMap.getOrDefault(offlinePlayer.getUniqueId(), ConfigManager.getFallbackDifficulty());
+        UUID uuid = offlinePlayer.getUniqueId();
+        String difficulty = difficultyMap.getOrDefault(uuid, ConfigManager.getFallbackDifficulty());
+
+        PickYourDifficulty.debug("🔍 Retrieved difficulty for offline player " + uuid + " → " + difficulty);
+        return difficulty;
     }
 
-    /**
-     * Gets the difficulty by raw UUID.
-     *
-     * @param uuid The player UUID
-     * @return Difficulty string key
-     */
     public String getDifficulty(UUID uuid) {
-        return difficultyMap.getOrDefault(uuid, ConfigManager.getFallbackDifficulty());
+        String difficulty = difficultyMap.getOrDefault(uuid, ConfigManager.getFallbackDifficulty());
+
+        PickYourDifficulty.debug("🔍 Retrieved difficulty for UUID " + uuid + " → " + difficulty);
+        return difficulty;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ✅ Check if Player Has Selected
-    // ─────────────────────────────────────────────────────────────
-
-    /** Checks if a player has manually selected a difficulty */
+    // ╔═══✅ Check if Player Has Selected═══════════════════════════════════╗
     public boolean hasSelectedDifficulty(Player player) {
+        // 📌 True if the player's  UUID exists in memory
         return difficultyMap.containsKey(player.getUniqueId());
     }
 
-    /** Checks if a UUID is registered with a difficulty */
     public boolean hasSelected(UUID uuid) {
         return difficultyMap.containsKey(uuid);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 📝 Set Difficulty
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══📝 Set Difficulty═════════════════════════════════════════════════╗
 
-    /**
-     * Sets a player's difficulty and logs the change.
-     *
-     * @param player        The online player
-     * @param difficultyKey The difficulty string key
-     */
     public void setDifficulty(Player player, String difficultyKey) {
+        UUID uuid = player.getUniqueId();
+
+        // 💾 Save to in-memory map
         difficultyMap.put(player.getUniqueId(), difficultyKey);
 
-        // 📢 Log the change for auditing
-        PickYourDifficulty.getInstance().getLogger().info("[PickYourDifficulty] Saved difficulty for "
-                + player.getName() + " → " + difficultyKey);
+        // 📣 Console log for server owners (always shown)
+        PickYourDifficulty.getInstance().getLogger().info(
+                "[PickYourDifficulty] Saved difficulty for " + player.getName() + " → " + difficultyKey
+        );
+
+        // 🧪 Debug trace
+        PickYourDifficulty.debug("💾 Updated difficulty for " + player.getName() + " (" + uuid + ") → " + difficultyKey);
     }
 
-    /**
-     * Sets a difficulty for a player by UUID (offline/admin use).
-     *
-     * @param uuid          The player UUID
-     * @param difficultyKey The difficulty string key
-     */
     public void setDifficulty(UUID uuid, String difficultyKey) {
         difficultyMap.put(uuid, difficultyKey);
+
+        PickYourDifficulty.debug("💾 Updated difficulty for UUID " + uuid + " → " + difficultyKey);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧽 Clear Difficulty
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══🧽 Clear Difficulty═══════════════════════════════════════════════╗
 
-    /** Clears a player’s difficulty setting (e.g., /pyd reset) */
     public void clearDifficulty(Player player) {
-        difficultyMap.remove(player.getUniqueId());
+        UUID uuid = player.getUniqueId();
+        difficultyMap.remove(uuid);
+
+        PickYourDifficulty.debug("❌ Cleared difficulty for player " + player.getName() + " (" + uuid + ")");
     }
 
-    /** Clears a difficulty by UUID (offline use) */
     public void clearDifficulty(UUID uuid) {
         difficultyMap.remove(uuid);
+
+        PickYourDifficulty.debug("❌ Cleared difficulty for UUID " + uuid);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧪 Debug & Export Tools
-    // ─────────────────────────────────────────────────────────────
+    // ╔═══📦 getAllDifficultyData() — For debug/export══════════════════════╗
 
-    /**
-     * Returns a defensive copy of the full internal map.
-     * Used for debug output, statistics, or export.
-     */
     public Map<UUID, String> getAllDifficultyData() {
-        return new HashMap<>(difficultyMap); // 🛡️ Prevent external mutation
+        // 🛡️ Return a defensive copy to prevent external mutation
+        return new HashMap<>(difficultyMap);
     }
 
     // 🔁 Difficulty effects (grace, despawn, etc.) are applied by:
     //    PlayerDataManager#applyDifficulty — this class stores state only.
 
-    // ─────────────────────────────────────────────────────────────
-    // 💾 Persistence — Load / Save
-    // ─────────────────────────────────────────────────────────────
+    // ╔════════════════════════════════════════════════════════════╗
+    // 💾 Persistence to Disk (playerdata.yml)
+    // ╚════════════════════════════════════════════════════════════╝
 
-    /**
-     * Loads difficulty data from disk (playerdata.yml)
-     * Invalid UUID strings are ignored silently.
-     */
     public void loadFromDisk() {
+        // 📂 Load YAML config from disk
         FileConfiguration config = StorageUtil.loadYaml("playerdata.yml");
+
+        // 🧹 Clear previous entries before reloading
         difficultyMap.clear();
 
         for (String key : config.getKeys(false)) {
@@ -165,25 +144,32 @@ public class PlayerDifficultyStorage {
                 UUID uuid = UUID.fromString(key);
                 String difficulty = config.getString(key);
 
+                // 🛑 Skip null entries
                 if (difficulty != null) {
                     difficultyMap.put(uuid, difficulty);
+
+                    PickYourDifficulty.debug("📥 Loaded difficulty from disk for " + uuid + " → " + difficulty);
                 }
-            } catch (IllegalArgumentException ignored) {
-                // 🧯 Skip malformed UUID keys
+
+            } catch (IllegalArgumentException e) {
+                // 🧯 Skip malformed UUID entries
+                PickYourDifficulty.debug("⚠️ Skipped invalid UUID in playerdata.yml: " + key);
             }
         }
     }
 
-    /**
-     * Saves difficulty data to disk (playerdata.yml)
-     */
     public void saveToDisk() {
+        // 🧾 Create fresh YAML structure to store difficulty data
         FileConfiguration config = new YamlConfiguration();
 
+        // 💾 Dump all in-memory difficulty entries
         for (Map.Entry<UUID, String> entry : difficultyMap.entrySet()) {
             config.set(entry.getKey().toString(), entry.getValue());
         }
 
+        // 💽 Write to disk using utility
         StorageUtil.saveYaml(config, "playerdata.yml");
+
+        PickYourDifficulty.debug("📤 Saved " + difficultyMap.size() + " difficulty entries to disk (playerdata.yml)");
     }
 }

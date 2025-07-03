@@ -6,6 +6,7 @@
 
 package dev.arzor.pickyourdifficulty.commands;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.managers.MessagesManager;
 import dev.arzor.pickyourdifficulty.utils.PermissionUtil;
 
@@ -22,39 +23,45 @@ import org.bukkit.entity.Player;
 import javax.annotation.Nonnull;
 import java.util.List;
 
+// ─────────────────────────────────────────────────────────────
+// 📖 CommandHelp — Displays interactive command list
+// ─────────────────────────────────────────────────────────────
 public class CommandHelp implements CommandExecutor {
 
     // ─────────────────────────────────────────────────────────────
     // 🧰 Utilities
     // ─────────────────────────────────────────────────────────────
 
-    /** MiniMessage parser for formatting hover/clickable rich text */
+    // 💬 MiniMessage parser for hover/clickable rich text
     private static final MiniMessage mm = MiniMessage.miniMessage();
 
     // ─────────────────────────────────────────────────────────────
     // ⚙️ Command Execution
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Handles the execution of /pyd help
-     * Displays available commands interactively based on permission.
-     */
     @Override
     public boolean onCommand(@Nonnull CommandSender sender, @Nonnull Command command, @Nonnull String label, @Nonnull String[] args) {
 
-        // ⛔ This command must be run by a player (not console)
+        // 📦 Debug: Help command received
+        PickYourDifficulty.debug("/pyd help invoked by: " + sender.getName());
+
+        // ╔═══🚫 Must Be Player═══════════════════════════════════════╗
+        // This command cannot be run from console or command blocks
         if (!(sender instanceof Player player)) {
+            PickYourDifficulty.debug("Blocked /pyd help — sender is not a player.");
             sender.sendMessage(MessagesManager.format("error.players-only"));
             return true;
         }
 
-        // ✅ Determine if the player should see permission hovers
-        // We enable this if the player is OP or has wildcard access
+        // ╔═══🔓 Determine Permission Visibility══════════════════════╗
+        // OPs and players with wildcard permissions can see hover tooltips
         boolean showPermissions = player.isOp()
                 || PermissionUtil.has(player, "*")
                 || PermissionUtil.has(player, "pickyourdifficulty.*");
 
-        // 🧾 Send help menu header (from messages.yml)
+        PickYourDifficulty.debug("Help menu shown to: " + player.getName() + " | showPermissions=" + showPermissions);
+
+        // ╔═══🧾 Send Header═══════════════════════════════════════════╗
         player.sendMessage(MessagesManager.format("help.header"));
 
         // ╔═══📌 Command Entries════════════════════════════════════════════════════════════════════════════╗
@@ -73,33 +80,34 @@ public class CommandHelp implements CommandExecutor {
     // 📌 Help Entry Display
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Sends a single help entry to the player with rich text features.
-     * Will not send if the player lacks permission and showPermissions is false.
-     *
-     * @param player          Player to receive the help line
-     * @param key             Config key for this help entry (e.g., "gui")
-     * @param showPermissions Whether to add permission hover text
-     */
+    // 💬 Sends a formatted help line to the player, with optional permission hover
     private void sendEntry(Player player, String key, boolean showPermissions) {
+
+        // 📥 Grab permission node required for this command
         String permission = MessagesManager.get("help.commands." + key + ".permission");
 
-        // ❌ Don't show the command if the player can't use it, and we're not showing all permissions
-        if (!PermissionUtil.hasAny(player, List.of(permission)) && !showPermissions) return;
+        // ❌ Skip if the player has no permission AND we're not showing hidden commands
+        if (!PermissionUtil.hasAny(player, List.of(permission)) && !showPermissions) {
+            PickYourDifficulty.debug("Skipping help entry for /pyd " + key + " — no permission and showPermissions=false");
+            return;
+        }
 
+        // 📥 Load the text to display and the suggested command for click
         String text = MessagesManager.get("help.commands." + key + ".text");       // Line text (MiniMessage)
         String suggest = MessagesManager.get("help.commands." + key + ".suggest"); // Suggested command on click
 
-        // ✅ Build the message with click-to-suggest behavior
+        PickYourDifficulty.debug("Adding help entry: /pyd " + key + " → suggests: '" + suggest + "'");
+
+        // ✅ Build a clickable message using MiniMessage
         Component entry = mm.deserialize(text)
                 .clickEvent(ClickEvent.suggestCommand(suggest));
 
-        // 💡 If permissions are visible, show them in hover tooltip
+        // 💡 If hover is enabled, show required permission on hover
         if (showPermissions) {
             entry = entry.hoverEvent(HoverEvent.showText(Component.text("Permission: " + permission)));
         }
 
-        // 📤 Send the entry to the player
+        // 📤 Send the final interactive entry to the player
         player.sendMessage(entry);
     }
 }

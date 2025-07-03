@@ -6,25 +6,27 @@
 
 package dev.arzor.pickyourdifficulty.utils;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
+
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
+// ─────────────────────────────────────────────────────────────
+// 🔊 SoundUtil — Simplified sound playback
+// ─────────────────────────────────────────────────────────────
 public class SoundUtil {
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔊 Sound Playback Utility
-    // ─────────────────────────────────────────────────────────────
+    /// ╔═══📢 play() — Play a sound to a player═══════════════════════════╗
 
-    /**
-     * Plays a sound to the player with customizable volume and pitch.
-     *
-     * @param player The player to play the sound to
-     * @param sound  The Bukkit Sound enum (e.g., BLOCK_NOTE_BLOCK_PLING)
-     * @param volume Volume multiplier (1.0f = normal volume)
-     * @param pitch  Pitch multiplier (1.0f = normal pitch)
-     */
+    // 💬 Plays a sound at the player's current location with given volume and pitch
     public static void play(Player player, Sound sound, float volume, float pitch) {
-        // 💬 Play the specified sound at the player's current location
+
+        // 🔉 Actually play the sound to the player
         player.playSound(player.getLocation(), sound, volume, pitch);
+
+        // 🧪 Debug: log the sound name, volume, and pitch
+        // 🧠 Note: sound.toString() gives safe enum name like "BLOCK_ANVIL_LAND"
+        PickYourDifficulty.debug("🔊 Played sound to " + player.getName()
+                + " → " + sound + " | vol=" + volume + " | pitch=" + pitch);
     }
 }

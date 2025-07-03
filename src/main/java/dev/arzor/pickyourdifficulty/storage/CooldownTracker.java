@@ -6,6 +6,7 @@
 
 package dev.arzor.pickyourdifficulty.storage;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.managers.ConfigManager;
 import dev.arzor.pickyourdifficulty.utils.StorageUtil;
 
@@ -16,108 +17,108 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+// ─────────────────────────────────────────────────────────────
+// 🧠 CooldownTracker — Memory + Disk for Difficulty Lock Timer
+// ─────────────────────────────────────────────────────────────
 public class CooldownTracker {
 
-    // ╔════════════════════════════════════════════════════════════╗
-    // ║                  🗺️ Internal Cooldown Map                  ║
-    // ╚════════════════════════════════════════════════════════════╝
-
-    /** Stores when each player last changed difficulty (epoch seconds) */
+    // ╔═══🗺️ Internal Cooldown Map═══════════════════════════════════════╗
+    // Stores: Player UUID → Epoch seconds of last difficulty change
     private static final Map<UUID, Long> cooldownMap = new HashMap<>();
 
-    // ╔════════════════════════════════════════════════════════════╗
-    // ║                    ⏱️ Cooldown Logic                       ║
-    // ╚════════════════════════════════════════════════════════════╝
-
-    /**
-     * Checks whether the given player is still on cooldown.
-     *
-     * @param uuid The player's UUID
-     * @return true if cooldown is active; false otherwise
-     */
+    // ╔═══❄️ isCooldownActive() — Check if a player is on cooldown═══════╗
     public static boolean isCooldownActive(UUID uuid) {
+
+        // 🧼 No record = no cooldown
         if (!cooldownMap.containsKey(uuid)) return false;
 
+        // 🕓 When did the player last change difficulty?
         long lastChangeTime = cooldownMap.get(uuid);
+
+        // ⏱️ Get current time in epoch seconds
         long now = System.currentTimeMillis() / 1000;
 
-        // 🧮 Check if enough seconds have passed since last change
-        return (now - lastChangeTime) < ConfigManager.changeCooldownSeconds();
+        // 🧮 Elapsed time = now - last change
+        long elapsed = now - lastChangeTime;
+
+        // 🔁 How long the cooldown lasts (from config)
+        long cooldown = ConfigManager.changeCooldownSeconds();
+
+        // ✅ Still cooling down if elapsed < cooldown
+        boolean active = elapsed < cooldown;
+
+        // 🧪 Debug output if enabled
+        PickYourDifficulty.debug("⌛ Cooldown check for " + uuid + ": " +
+                (active ? "ACTIVE" : "EXPIRED") + " (" + elapsed + "s elapsed, cooldown = " + cooldown + "s)");
+
+        return active;
     }
 
-    /**
-     * Gets the number of seconds remaining on the player's cooldown.
-     *
-     * @param uuid The player's UUID
-     * @return Remaining cooldown seconds (or 0 if expired)
-     */
+    // ╔═══⏱️ getRemainingSeconds() — Time Left on Cooldown════════════════╗
     public static long getRemainingSeconds(UUID uuid) {
+
+        // 🧼 No entry? No time remaining.
         if (!cooldownMap.containsKey(uuid)) return 0;
 
         long lastChangeTime = cooldownMap.get(uuid);
         long now = System.currentTimeMillis() / 1000;
         long cooldown = ConfigManager.changeCooldownSeconds();
 
+        // 🧮 Calculate time remaining by subtract elapsed from cooldown; clamp to zero minimum
         long elapsed = now - lastChangeTime;
+        long remaining = Math.max(0, cooldown - elapsed);
 
-        // 🧮 Subtract elapsed from cooldown; clamp to zero minimum
-        return Math.max(0, cooldown - elapsed);
+        PickYourDifficulty.debug("⏱️ Remaining cooldown for " + uuid + ": " + remaining +
+                "s (elapsed: " + elapsed + "s)");
+
+        return remaining;
     }
 
-    /**
-     * Starts a cooldown timer for the player (using current timestamp).
-     *
-     * @param uuid The player's UUID
-     */
+    // ╔═══🎯 setCooldownNow() — Start cooldown from current time═══════════╗
     public static void setCooldownNow(UUID uuid) {
         long now = System.currentTimeMillis() / 1000;
         cooldownMap.put(uuid, now);
+
+        PickYourDifficulty.debug("📌 Set cooldown for " + uuid + " at time " + now);
     }
 
-    /**
-     * Clears the cooldown entry for a specific player.
-     *
-     * @param uuid The player's UUID
-     */
+    // ╔═══🧼 clearCooldown() — Remove cooldown for a specific player═══════╗
     public static void clearCooldown(UUID uuid) {
         cooldownMap.remove(uuid);
+
+        PickYourDifficulty.debug("❌ Cleared cooldown for " + uuid);
     }
 
-    /**
-     * ⚠️ Developer method: Clears ALL cooldowns (testing only).
-     * Should not be used in production.
-     */
+    // ╔═══💣 clearAll() — ⚠️ Dev-only nuke method to clear all cooldowns════╗
     @SuppressWarnings("unused")
     public static void clearAll() {
         cooldownMap.clear();
+
+        PickYourDifficulty.debug("💥 Cleared all cooldowns (dev use only)");
     }
 
-    // ╔════════════════════════════════════════════════════════════╗
-    // ║           💾 Persistence to/from cooldowns.yml             ║
-    // ╚════════════════════════════════════════════════════════════╝
-
-    /**
-     * Loads all cooldown data from cooldowns.yml and repopulates the map.
-     */
+    // ╔═══💾 Load Cooldowns from Disk═════════════════════════════════════╗
     public static void loadFromDisk() {
         FileConfiguration config = StorageUtil.loadYaml("cooldowns.yml");
 
         cooldownMap.clear(); // start fresh
+        int loaded = 0;
 
         for (String key : config.getKeys(false)) {
             try {
                 UUID uuid = UUID.fromString(key);
                 long timestamp = config.getLong(key);
                 cooldownMap.put(uuid, timestamp);
+                loaded++;
             } catch (IllegalArgumentException ignored) {
-                // Skip invalid UUID entries
+                // 🧼 Skip any invalid entries that aren’t valid UUIDs
             }
         }
+
+        PickYourDifficulty.debug("💾 Loaded " + loaded + " cooldown entries from cooldowns.yml");
     }
 
-    /**
-     * Saves current cooldownMap contents to cooldowns.yml.
-     */
+    // ╔═══💾 Save Cooldowns to Disk═══════════════════════════════════════╗
     public static void saveToDisk() {
         FileConfiguration config = new YamlConfiguration();
 
@@ -126,5 +127,7 @@ public class CooldownTracker {
         }
 
         StorageUtil.saveYaml(config, "cooldowns.yml");
+
+        PickYourDifficulty.debug("💾 Saved " + cooldownMap.size() + " cooldown entries to cooldowns.yml");
     }
 }

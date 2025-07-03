@@ -8,6 +8,8 @@
 
 package dev.arzor.pickyourdifficulty.managers;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -38,7 +40,12 @@ public class HologramTaskManager {
         int intervalTicks = ConfigManager.getHologramUpdateInterval();
 
         // 🛑 If update interval is zero or disabled, skip launching task
-        if (intervalTicks <= 0) return;
+        if (intervalTicks <= 0) {
+            PickYourDifficulty.debug("⏲️ HologramTaskManager not started: interval is set to 0 (disabled)");
+            return;
+        }
+
+        PickYourDifficulty.debug("⏲️ HologramTaskManager starting with interval: " + intervalTicks + " ticks");
 
         taskId = new BukkitRunnable() {
             @Override
@@ -55,11 +62,13 @@ public class HologramTaskManager {
     public static void stop() {
         // Cancel the task if it’s running
         if (taskId != -1) {
+            PickYourDifficulty.debug("⛔ Stopping HologramTaskManager task (ID: " + taskId + ")");
             Bukkit.getScheduler().cancelTask(taskId);
             taskId = -1;
         }
 
         // 🧹 Remove all visual holograms (but leave persistent storage intact)
+        PickYourDifficulty.debug("🧹 Removing all active holograms (visuals only)");
         HologramManager.removeAll();
     }
 
@@ -70,7 +79,10 @@ public class HologramTaskManager {
     private static void updateAll() {
         long now = System.currentTimeMillis();
 
-        // Loop through all tracked items
+        // 🧠 Debug: Report how many items are currently tracked
+        PickYourDifficulty.debug("🔄 Running hologram update loop for " + active.size() + " tracked items");
+
+        // Loop through all tracked hologram entries
         Iterator<Map.Entry<UUID, HologramManager.TrackedHologram>> iterator = active.entrySet().iterator();
 
         while (iterator.hasNext()) {
@@ -81,27 +93,33 @@ public class HologramTaskManager {
             // 🔍 Try to find the matching item in the world
             Item item = findItemByUUID(itemId);
 
-            // 📦 Skip if item is gone or invalid
+            // 📦 Remove if item no longer exists or was picked up
             if (item == null || item.isDead() || !item.isValid()) {
+                PickYourDifficulty.debug("❌ Removing hologram: item no longer exists (UUID: " + itemId + ")");
                 HologramManager.removeHologramFromUUID(itemId);
                 iterator.remove();
                 continue;
             }
 
-            // 📦 Skip countdown if the chunk is not currently loaded
+            // 📭 Skip countdown if the chunk is not currently loaded
             Chunk chunk = item.getLocation().getChunk();
-            if (!chunk.isLoaded()) continue;
+            if (!chunk.isLoaded()) {
+                PickYourDifficulty.debug("📭 Skipping hologram update: chunk not loaded (UUID: " + itemId + ")");
+                continue;
+            }
 
             // 🧮 Compute remaining time until expiration
             long millisRemaining = tracked.expiresAtMillis() - now;
             int secondsLeft = (int) (millisRemaining / 1000L);
 
-            // ⌛ If time’s up, remove it entirely
+            // ⌛ Expired? Remove the item and hologram
             if (secondsLeft <= 0) {
+                PickYourDifficulty.debug("⌛ Hologram expired: removing item (UUID: " + itemId + ")");
                 HologramManager.removeHologramFromUUID(itemId);
                 iterator.remove();
             } else {
-                // 🔁 Otherwise update the visual countdown
+                // 🔁 Still active? Update the hologram countdown
+                PickYourDifficulty.debug("⏳ Updating hologram (UUID: " + itemId + ") — " + secondsLeft + "s remaining");
                 HologramManager.updateHologram(item);
             }
         }
@@ -116,6 +134,7 @@ public class HologramTaskManager {
         for (World world : Bukkit.getWorlds()) {
             for (Chunk chunk : world.getLoadedChunks()) {
                 for (Entity entity : chunk.getEntities()) {
+                    // 🧠 Check UUID match and return if found
                     if (entity instanceof Item item && item.getUniqueId().equals(uuid)) {
                         return item;
                     }
@@ -123,7 +142,7 @@ public class HologramTaskManager {
             }
         }
 
-        // 🚫 Not found — may have despawned or been picked up
+        // 🚫 Not found — likely despawned or picked up
         return null;
     }
 }

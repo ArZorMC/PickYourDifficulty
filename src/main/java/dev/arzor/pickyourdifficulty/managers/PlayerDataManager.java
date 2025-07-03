@@ -13,117 +13,96 @@ import dev.arzor.pickyourdifficulty.storage.CooldownTracker;
 
 import org.bukkit.entity.Player;
 
-/**
- * 📦 Centralized access to player difficulty data.
- * This currently wraps PlayerDifficultyStorage, but allows future logic expansions
- * (e.g., tracking selection state, cooldown checks, or cross-storage caching).
- */
+// ─────────────────────────────────────────────────────────────
+// 🧠 PlayerDataManager — Runtime access to player difficulty data
+// ─────────────────────────────────────────────────────────────
 // ⚠️ Not using Java `record` here — class encapsulates behavior, not just data.
 @SuppressWarnings("ClassCanBeRecord")
 public class PlayerDataManager {
 
-    // ╔════════════════════════════════════════════════════════════╗
-    // ║                  🧠 Stored Difficulty Data                 ║
-    // ╚════════════════════════════════════════════════════════════╝
+    // 🗂️ Backing storage system for difficulty per player
     private final PlayerDifficultyStorage difficultyStorage;
 
-    // ─────────────────────────────────────────────────────────────
-    // 🛠️ Constructor
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Constructs a new PlayerDataManager with linked storage and cooldowns.
-     *
-     * @param difficultyStorage The backend for player difficulty data
-     */
+    // ╔═══🛠️ Constructor════════════════════════════════════════════════╗
     public PlayerDataManager(PlayerDifficultyStorage difficultyStorage) {
         this.difficultyStorage = difficultyStorage;
+
+        // 🧪 Debug: confirm manager initialized with storage
+        PickYourDifficulty.debug("🧠 PlayerDataManager initialized with PlayerDifficultyStorage backend");
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 📦 Difficulty Selection Logic
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * 🧩 Checks whether the player has already selected a difficulty.
-     *
-     * @param player The player to check
-     * @return true if they have selected; false otherwise
-     */
+    // ╔═══🔍 Check if player has selected a difficulty══════════════════╗
     public boolean hasSelectedDifficulty(Player player) {
-        return difficultyStorage.getDifficulty(player) != null;
+        String difficulty = difficultyStorage.getDifficulty(player);
+        boolean selected = (difficulty != null);
+
+        // 🧪 Debug: show selection state
+        PickYourDifficulty.debug("🔍 hasSelectedDifficulty(): " + player.getName()
+                + " → " + (selected ? "✅ Yes (" + difficulty + ")" : "❌ No selection"));
+
+        return selected;
     }
 
-    /**
-     * 📥 Applies difficulty settings to a player and logs key details.
-     *
-     * @param player The player being processed
-     */
+    // ╔═══📥 Apply difficulty settings from config══════════════════════╗
     public void applyDifficulty(Player player) {
-        // 📦 Get the player's difficulty from storage
+        // 📦 Get stored difficulty for this player
         String difficulty = difficultyStorage.getDifficulty(player);
 
-        // 🔁 If not found, fallback to default difficulty
+        // 📦 Use fallback if none selected
         if (difficulty == null) {
             difficulty = DifficultyManager.getFallbackDifficulty();
+            PickYourDifficulty.debug("📥 No stored difficulty for " + player.getName()
+                    + " — using fallback: " + difficulty);
         }
 
-        // 🧮 Lookup config values for despawn and grace period
+        // 🧮 Lookup config values
         int despawn = ConfigManager.getDespawnTime(difficulty);
         int grace = ConfigManager.getGraceTime(difficulty);
 
-        // 🪵 Log what's being applied to this player
-        PickYourDifficulty.getInstance().getLogger().info("[PickYourDifficulty] Applying difficulty to " + player.getName()
+        // 🧪 Debug: log applied values
+        PickYourDifficulty.debug("🎯 Applying difficulty to " + player.getName()
                 + " → " + difficulty + " (despawn: " + despawn + "s, grace: " + grace + "s)");
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ⏳ GUI Cooldown Management
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * ⏱️ Checks if the player is still under cooldown and *cannot* open GUI.
-     *
-     * @param player The player to check
-     * @return true if cooldown is active (GUI locked); false if allowed
-     */
+    // ╔═══⏳ Check if GUI cooldown is active════════════════════════════╗
     public boolean isGuiCooldownActive(Player player) {
-        // 🧮 If cooldown is > 0 and timer is running, player is blocked
         int cooldown = ConfigManager.changeCooldownSeconds();
-        return cooldown > 0 && CooldownTracker.isCooldownActive(player.getUniqueId());
+
+        // 💬 Check if cooldown is configured and currently active
+        boolean active = cooldown > 0 && CooldownTracker.isCooldownActive(player.getUniqueId());
+
+        // 🧪 Debug: cooldown status
+        PickYourDifficulty.debug("⏳ isGuiCooldownActive(): " + player.getName()
+                + " → " + (active ? "⛔ Active" : "✅ OK"));
+
+        return active;
     }
 
-    /**
-     * ⏱️ Starts a cooldown timer for the player after switching difficulty.
-     *
-     * @param player The player to track
-     */
+    // ╔═══🕐 Start GUI cooldown timer═══════════════════════════════════╗
     public void startGuiCooldown(Player player) {
-        // 🕐 Starts tracking from current time
         CooldownTracker.setCooldownNow(player.getUniqueId());
+
+        // 🧪 Debug: log cooldown start
+        PickYourDifficulty.debug("🕐 Started GUI cooldown for " + player.getName());
     }
 
-    /**
-     * 📊 Returns how many seconds are left in the cooldown (if any).
-     *
-     * @param player The player to query
-     * @return Seconds remaining, or 0 if no cooldown
-     */
+    // ╔═══📊 Get remaining cooldown time════════════════════════════════╗
     public int getCooldownSecondsLeft(Player player) {
-        // 🧮 Convert millis to whole seconds by casting
-        return (int) CooldownTracker.getRemainingSeconds(player.getUniqueId());
+        long seconds = CooldownTracker.getRemainingSeconds(player.getUniqueId());
+
+        // 🧮 Convert result to int (safe cast)
+        int result = (int) seconds;
+
+        // 🧪 Debug: remaining time
+        PickYourDifficulty.debug("⏱️ getCooldownSecondsLeft(): " + player.getName() + " → " + result + "s");
+
+        return result;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🔓 Raw Storage Access
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * 🧠 Exposes the wrapped storage system for advanced use.
-     *
-     * @return The PlayerDifficultyStorage instance
-     */
+    // ╔═══🧠 Access raw storage backend═════════════════════════════════╗
     public PlayerDifficultyStorage getDifficultyStorage() {
+        // 🧪 Debug: log access (optional)
+        PickYourDifficulty.debug("🧠 getDifficultyStorage() called");
         return difficultyStorage;
     }
 }

@@ -13,40 +13,49 @@ import dev.arzor.pickyourdifficulty.managers.PlayerDataManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
+// ─────────────────────────────────────────────────────────────
+// 🧭 Placeholder Registrar — Connects with PlaceholderAPI
+// ─────────────────────────────────────────────────────────────
 public class PlaceholderRegistrar {
 
-    // ─────────────────────────────────────────────────────────────
-    // 🚀 Registration Method
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Registers placeholders with PlaceholderAPI if:
-     * 1. Enabled in the plugin's config.yml
-     * 2. PlaceholderAPI is installed and enabled on the server
-     *
-     * @param playerDataManager Active player data manager instance
-     */
+    // ╔═══🚀 Register Placeholders if Integration is Enabled═════════════════════════╗
     public static void register(PlayerDataManager playerDataManager) {
 
-        // 📦 Exit early if PAPI integration is not enabled
-        if (!ConfigManager.enablePlaceholderAPI()) return;
-        if (!ConfigManager.registerPlaceholders()) return;
-
-        // 🔍 Attempt to locate the PlaceholderAPI plugin
-        Plugin papi = Bukkit.getPluginManager().getPlugin("PlaceholderAPI");
-        if (papi == null || !papi.isEnabled()) {
-            PickYourDifficulty.getInstance().getLogger().warning(
-                    "[PickYourDifficulty] PlaceholderAPI is not installed or not enabled!"
-            );
+        // 📦 Step 1: Check if PlaceholderAPI integration is enabled in config
+        if (!ConfigManager.enablePlaceholderAPI()) {
+            PickYourDifficulty.debug("🔌 PlaceholderAPI integration is disabled in config — skipping registration.");
             return;
         }
 
-        // ✅ All checks passed — register the expansion
+        // 📦 Step 2: Check if placeholders should be registered
+        if (!ConfigManager.registerPlaceholders()) {
+            PickYourDifficulty.debug("🛑 Placeholder registration is disabled in config — skipping.");
+            return;
+        }
+
+
+        // 📦 Step 3: Verify PlaceholderAPI plugin is installed and enabled
+        Plugin papi = Bukkit.getPluginManager().getPlugin("PlaceholderAPI");
+
+        // ❌ Fail if not found or not enabled
+        if (papi == null || !papi.isEnabled()) {
+            PickYourDifficulty.getInstance().getLogger().warning(
+                    "[PickYourDifficulty] ⚠️ PlaceholderAPI not found or not enabled — placeholders will not be registered."
+            );
+
+            PickYourDifficulty.debug("❌ PlaceholderAPI missing or disabled. Detected plugin = " + papi);
+            return;
+        }
+
+        // 📦 Step 4: Register our placeholder expansion
         new DifficultyPlaceholder(playerDataManager).register();
 
-        // 📝 Confirm successful registration in console
+        // 🧪 Debug: Confirm registration
+        PickYourDifficulty.debug("✅ Registered %pickyourdifficulty_*% placeholders with PlaceholderAPI.");
+
+        // 📣 Always log success to console for visibility
         PickYourDifficulty.getInstance().getLogger().info(
-                "[PickYourDifficulty] Registered %pickyourdifficulty_*% placeholders with PlaceholderAPI."
+                "[PickYourDifficulty] ✅ PlaceholderAPI integration complete — placeholders registered."
         );
     }
 }

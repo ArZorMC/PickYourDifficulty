@@ -6,6 +6,7 @@
 
 package dev.arzor.pickyourdifficulty.listeners;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.managers.ConfigManager;
 import dev.arzor.pickyourdifficulty.managers.GUIManager;
 import dev.arzor.pickyourdifficulty.managers.PlayerDataManager;
@@ -21,6 +22,13 @@ import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.UUID;
 
+// ─────────────────────────────────────────────────────────────
+// 👋 JoinListener — GUI + Grace Handling on Join/Quit
+// ─────────────────────────────────────────────────────────────
+// This listener handles:
+//  • GUI opening logic (auto or dev mode)
+//  • Difficulty application + grace reminders
+//  • Quit cleanup of cooldown and grace memory
 public class JoinListener implements Listener {
 
     private final GUIManager guiManager;
@@ -41,41 +49,54 @@ public class JoinListener implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // 📦 Mini Block: Already selected difficulty? Apply it.
+        // 🧪 Debug: Log the join event with UUID
+        PickYourDifficulty.debug("Player joined: " + player.getName() + " (UUID: " + player.getUniqueId() + ")");
+
+        // 📦 Already Selected Difficulty → Apply + Welcome
         if (dataManager.hasSelectedDifficulty(player)) {
+            PickYourDifficulty.debug("Difficulty already selected for " + player.getName() + " — applying difficulty.");
+
+            // ✅ Apply saved difficulty effects
             dataManager.applyDifficulty(player);
 
             // 💬 Send welcome message (if enabled in config)
-            if (ConfigManager.showWelcomeOnJoin()) {
-                String difficulty = dataManager.getDifficultyStorage().getDifficulty(player);
-                if (difficulty != null && !difficulty.isEmpty()) {
-                    player.sendMessage(MessagesManager.format(difficulty));
-                }
+            String difficulty = dataManager.getDifficultyStorage().getDifficulty(player);
+            if (ConfigManager.showWelcomeOnJoin() && difficulty != null && !difficulty.isEmpty()) {
+                player.sendMessage(MessagesManager.format(difficulty));
+                PickYourDifficulty.debug("Welcome message sent for difficulty: " + difficulty);
             }
 
-            // 💬 Grace Reminder — only if grace > 0
-            String difficulty = dataManager.getDifficultyStorage().getDifficulty(player);
+            // 🛡️ Grace Reminder (if grace time > 0)
             int graceTime = ConfigManager.getGraceTime(difficulty);
             if (graceTime > 0) {
                 player.sendMessage(MessagesManager.get("grace-active", player));
+                PickYourDifficulty.debug("Grace reminder sent to " + player.getName() + " (" + graceTime + "s)");
             }
 
             return;
         }
 
-        // 📦 Mini Block: Force GUI open if dev mode enabled
+        // 📦 Dev Mode GUI Override → Force GUI open
         if (ConfigManager.devModeAlwaysShow()) {
+            PickYourDifficulty.debug("Dev mode active — forcing GUI open for " + player.getName());
             guiManager.openDifficultyGUI(player);
             return;
         }
 
-        // 📦 Mini Block: Skip if auto-open feature is disabled
-        if (!ConfigManager.autoOpenIfUnchosen()) return;
+        // 📦 Auto-Open Disabled → Skip
+        if (!ConfigManager.autoOpenIfUnchosen()) {
+            PickYourDifficulty.debug("Auto-open disabled — skipping GUI for " + player.getName());
+            return;
+        }
 
-        // 📦 Mini Block: Skip if player is still under cooldown
-        if (dataManager.isGuiCooldownActive(player)) return;
+        // 📦 GUI Cooldown Active → Skip
+        if (dataManager.isGuiCooldownActive(player)) {
+            PickYourDifficulty.debug("GUI cooldown active — skipping GUI for " + player.getName());
+            return;
+        }
 
         // 🪟 Open the difficulty GUI for first-time chooser
+        PickYourDifficulty.debug("Opening difficulty GUI for new player: " + player.getName());
         guiManager.openDifficultyGUI(player);
     }
 
@@ -85,8 +106,11 @@ public class JoinListener implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
+        String name = event.getPlayer().getName();
 
         GraceReminderTracker.clear(uuid);        // 🧼 Clear grace tracker
         CooldownTracker.clearCooldown(uuid);     // 🧼 Clear cooldowns
+
+        PickYourDifficulty.debug("Player quit: " + name + " — cleared grace + cooldown cache.");
     }
 }

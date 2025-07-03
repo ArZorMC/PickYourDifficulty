@@ -6,69 +6,62 @@
 
 package dev.arzor.pickyourdifficulty.storage;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+// ─────────────────────────────────────────────────────────────
+// 🧠 GraceReminderTracker — Anti-Spam Reminder System
+// ─────────────────────────────────────────────────────────────
 public class GraceReminderTracker {
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧭 Internal Tracking Map
-    // ─────────────────────────────────────────────────────────────
-
-    /** Stores last reminder timestamp per player (system milliseconds) */
+    // ╔═══🗺️ Internal Timestamp Map══════════════════════════════════════╗
+    // Stores: Player UUID → last reminder timestamp (milliseconds)
     private static final Map<UUID, Long> lastReminderTimestamps = new HashMap<>();
 
-    // ─────────────────────────────────────────────────────────────
-    // ⏱️ Reminder Logic
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Updates the stored timestamp to mark when a player was last reminded.
-     *
-     * @param uuid The UUID of the player to update
-     */
+    // ╔═══📌 updateReminder() — Mark current time as last reminder═══════╗
     public static void updateReminder(UUID uuid) {
-        // 💾 Save the current system time for this player
-        lastReminderTimestamps.put(uuid, System.currentTimeMillis());
+        long now = System.currentTimeMillis(); // Current time in ms
+        lastReminderTimestamps.put(uuid, now); // Save new timestamp
+
+        // 🧪 Debug: log when reminders are marked
+        PickYourDifficulty.debug("🔔 Updated grace reminder timestamp for " + uuid + " → " + now + "ms");
     }
 
-    /**
-     * Returns how many seconds have passed since the last reminder.
-     * If no reminder has ever been sent, returns Long.MAX_VALUE.
-     *
-     * @param uuid The UUID of the player
-     * @return Seconds since last reminder, or max value if never reminded
-     */
+    // ╔═══⏱️ getSecondsSinceLastReminder() — Time since last reminder════╗
     public static long getSecondsSinceLastReminder(UUID uuid) {
         Long last = lastReminderTimestamps.get(uuid);
 
-        // 📭 If player has never received a reminder, use large value as default
-        if (last == null) return Long.MAX_VALUE;
+        // 📭 No reminder ever sent — treat as infinite delay
+        if (last == null) {
+            PickYourDifficulty.debug("📭 No previous reminder found for " + uuid + " → returning Long.MAX_VALUE");
+            return Long.MAX_VALUE;
+        }
 
-        // 🧮 Convert difference in milliseconds to seconds
-        return (System.currentTimeMillis() - last) / 1000;
+        long now = System.currentTimeMillis(); // Current time in ms
+        long diffMillis = now - last;          // 🧮 Milliseconds since last reminder
+        long seconds = diffMillis / 1000;      // 🧮 Convert to seconds (1s = 1000ms)
+
+        // 🧪 Debug: show time since last reminder
+        PickYourDifficulty.debug("⏱️ Time since last reminder for " + uuid +
+                " → " + seconds + "s (" + diffMillis + "ms)");
+
+        return seconds;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧹 Cleanup Methods
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Removes the reminder timestamp for a single player.
-     * Useful when a player logs out or is reset.
-     *
-     * @param uuid The UUID of the player to remove
-     */
+    // ╔═══🧼 clear() — Remove reminder for single player═════════════════╗
     public static void clear(UUID uuid) {
         lastReminderTimestamps.remove(uuid);
+
+        PickYourDifficulty.debug("❌ Cleared grace reminder timestamp for " + uuid);
     }
 
-    /**
-     * Wipes all reminder timestamps.
-     * Typically used during plugin reloads or resets.
-     */
+    // ╔═══💣 clearAll() — ⚠️ Dev wipe of all reminder timestamps══════════╗
     public static void clearAll() {
         lastReminderTimestamps.clear();
+
+        PickYourDifficulty.debug("🧹 Cleared all grace reminder timestamps");
     }
 }

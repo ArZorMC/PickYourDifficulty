@@ -9,6 +9,7 @@
 
 package dev.arzor.pickyourdifficulty.managers;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.interfaces.Reloadable;
 import dev.arzor.pickyourdifficulty.storage.CooldownTracker;
 import dev.arzor.pickyourdifficulty.storage.PlayerDifficultyStorage;
@@ -18,78 +19,54 @@ import java.util.Collections;
 import java.util.List;
 
 // ─────────────────────────────────────────────────────────────
-// 📦 ReloadManager: Live reload support system
+// 🔁 ReloadManager — Live reload support + registry
 // ─────────────────────────────────────────────────────────────
-
 public class ReloadManager {
 
-    // ╔════════════════════════════════════════════════════════════╗
-    // 🧱 Internal Registry
-    // ╚════════════════════════════════════════════════════════════╝
+    // ╔═══🗂️ Internal Reloadable Registry══════════════════════════════╗
 
-    /** Holds all registered reloadable components */
+    // Live reference to all registered reloadable classes
     private static final List<Reloadable> reloadables = new ArrayList<>();
 
-    // ─────────────────────────────────────────────────────────────
-    // ➕ Register a Component
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Registers a Reloadable component to be reloaded later.
-     *
-     * @param reloadable The reloadable instance
-     */
+    // ╔═══➕ Register a Reloadable Component════════════════════════════╗
     public static void register(Reloadable reloadable) {
-        // ✅ Avoid nulls or duplicates
+        // 🛡️ Avoid nulls or duplicate entries
         if (reloadable != null && !reloadables.contains(reloadable)) {
             reloadables.add(reloadable);
+
+            // 🧪 Debug: Log registration
+            PickYourDifficulty.debug("🔁 Registered reloadable: " + reloadable.getClass().getSimpleName());
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ♻️ Reload All
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Reloads all registered components in order.
-     * This includes core YAML state and any custom managers.
-     */
+    // ╔═══♻️ Reload All Registered Components═══════════════════════════╗
     public static void reloadAll() {
-
-        // 📦 Load core persistent storage first
+        // 📦 Reload core persistent storage before anything else
         PlayerDifficultyStorage.getInstance().loadFromDisk();
         CooldownTracker.loadFromDisk();
 
-        // 🔁 Reload all other registered components
+        PickYourDifficulty.debug("♻️ Reloading all registered components (" + reloadables.size() + " total)...");
+
+        // 🔁 Reload every registered component
         for (Reloadable reloadable : reloadables) {
-            if (ConfigManager.isDebugMode()) {
-                System.out.println("[PickYourDifficulty] Reloading: " + reloadable.getClass().getSimpleName());
-            }
-            reloadable.reload(); // Call instance method
+            PickYourDifficulty.debug("↩️ Reloading: " + reloadable.getClass().getSimpleName());
+            reloadable.reload();
         }
+
+        PickYourDifficulty.debug("✅ Reload complete.");
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 📚 Read-Only View of Registry
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Returns an unmodifiable list of registered reloadables.
-     *
-     * @return List of Reloadable instances
-     */
+    // ╔═══📚 Get Read-Only View of Registry═════════════════════════════╗
     public static List<Reloadable> getReloadables() {
+        // 🔒 Return immutable snapshot of registered reloadables
         return Collections.unmodifiableList(reloadables);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 🧼 Dev Reset
-    // ─────────────────────────────────────────────────────────────
-
-    /**
-     * Clears all registered reloadables — not normally needed except for testing.
-     */
+    // ╔═══🧼 Clear Registry (Dev Use Only)═══════════════════════════════╗
     public static void clearAll() {
         reloadables.clear();
+
+        // 🧪 Debug: Confirm clear
+        PickYourDifficulty.debug("🧼 Cleared all registered reloadables");
     }
 }

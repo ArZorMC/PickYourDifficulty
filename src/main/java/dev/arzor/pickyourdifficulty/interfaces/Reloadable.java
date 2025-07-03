@@ -9,30 +9,21 @@ package dev.arzor.pickyourdifficulty.interfaces;
 // ─────────────────────────────────────────────────────────────
 // 🧩 Reloadable Interface
 // ─────────────────────────────────────────────────────────────
+// This interface is used for components that can be safely reloaded
+// while the plugin is running (e.g., config, messages, etc.)
+//
+// Implementing classes are registered with ReloadManager and
+// must define a safe and repeatable reload() method.
 
-/**
- * 🔁 Reloadable
- * This interface defines the contract for any plugin component that
- * supports being reloaded while the server is running.
-
- * Typical use cases include:
- * - ConfigManager (reload config.yml)
- * - MessagesManager (reload messages.yml)
-
- * Classes that implement this will be picked up by ReloadManager.
- * They must implement a safe and idempotent `reload()` method.
- */
 public interface Reloadable {
 
-    /**
-     * ⏳ Reload logic for this component.
+    // ╔═══🔁 reload() — Live reload entry point════════════════════════════════════╗
+    // This method is called by ReloadManager when a /pyd reload occurs.
+    // Components should:
+    //  - Re-read any external file or state (e.g., config.yml)
+    //  - Clear and rebuild any internal data structures
+    //  - Avoid assuming the prior state is valid
+    //  - Be safe to call multiple times (idempotent)
 
-     * This method should:
-     * - Safely reload internal state
-     * - Re-read any config or file data as needed
-     * - Not assume prior state exists (clean slate)
-
-     * 🔁 It may be called multiple times safely (idempotent).
-     */
     void reload();
 }

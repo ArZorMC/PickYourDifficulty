@@ -31,6 +31,20 @@ despawnBehavior:
                                       # 🛡️ Example: A 30-min item won't drop to 30 sec if picked up by
                                       # someone on Hardcore.
 
+  ownershipTransferThreshold: 30      # ⏱️ Number of seconds a player must hold an item before they
+                                      # are considered the *new* legitimate owner.
+                                      # 🧠 Why 30 seconds is the default?
+                                      #   This value strikes a balance between fairness and protection:
+                                      #   - Long enough to prevent abuse like "bouncing" an item off
+                                      #     an easier difficulty player to gain a longer despawn timer.
+                                      #   - Short enough to allow legitimate transfers (e.g., gifting,
+                                      #     returning dropped items) to still work as expected.
+                                      # ✅ This prevents abuse like bouncing an item off a player with
+                                      # easier difficulty just to get a longer despawn time.
+                                      # Example: If Player A (Hard) drops an item and Player B (Easy)
+                                      # picks it up then re-drops it after 5s, the timer will not be upgraded.
+                                      # After 30s, Player B is considered the owner and their timer applies.
+
 # ╔═══🎮 Difficulty Presets═════════════════════════════════════════════╗
   # Each entry defines a selectable difficulty mode
   # 🧠 TIP: GUI slots start at 0 (top-left) and go up left-to-right, row-by-row
@@ -286,7 +300,7 @@ confirmationGUI:
   #     https://github.com/GeyserMC/mappings/blob/master/sounds.json
 sounds:
   gui-open:
-    sound: "UI_BUTTON_CLICK"                           # Played when the main difficulty GUI opens
+    sound: "BLOCK_NOTE_BLOCK_PLING"                           # Played when the main difficulty GUI opens
     volume: 1.0
     pitch: 1.0
   confirm-selection:

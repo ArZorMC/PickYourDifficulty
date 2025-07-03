@@ -6,6 +6,7 @@
 
 package dev.arzor.pickyourdifficulty.listeners;
 
+import dev.arzor.pickyourdifficulty.PickYourDifficulty;
 import dev.arzor.pickyourdifficulty.managers.ConfigManager;
 import dev.arzor.pickyourdifficulty.managers.DifficultyManager;
 import dev.arzor.pickyourdifficulty.managers.GUIManager;
@@ -27,8 +28,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.logging.Logger;
-
+// ─────────────────────────────────────────────────────────────
+// 🖱️ GUIClickListener — Handles difficulty GUI clicks
+// ─────────────────────────────────────────────────────────────
+// This listener handles:
+//  • Cancelling invalid clicks (shift, hotbar, drop)
+//  • Detecting filler item clicks and blocking them
+//  • Matching valid difficulty icons
+//  • Routing to confirmation or instant-apply
 public class GUIClickListener implements Listener {
 
     private static final MiniMessage mm = MiniMessage.miniMessage();
@@ -36,15 +43,13 @@ public class GUIClickListener implements Listener {
     // Fields to inject
     private final GUIManager guiManager;
     private final PlayerDataManager playerDataManager;
-    private final Logger logger;
 
     // ╔════════════════════════════════════════════════════════════════════╗
     // ║               🛠️ Constructor — Dependency Injection                ║
     // ╚════════════════════════════════════════════════════════════════════╝
-    public GUIClickListener(GUIManager guiManager, PlayerDataManager playerDataManager, Logger logger) {
+    public GUIClickListener(GUIManager guiManager, PlayerDataManager playerDataManager) {
         this.guiManager = guiManager;
         this.playerDataManager = playerDataManager;
-        this.logger = logger;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -60,9 +65,14 @@ public class GUIClickListener implements Listener {
 
         // 🧪 Match against expected GUI title
         String rawTitle = ConfigManager.getGuiTitle();
-        String expectedTitle = mm.deserialize(TextUtil.replacePlaceholders(rawTitle, player)).toString();
-        String actualTitle = event.getView().title().toString();
-        if (!actualTitle.equals(expectedTitle)) return;
+        Component expectedTitle = mm.deserialize(TextUtil.replacePlaceholders(rawTitle, player));
+        Component actualTitle = event.getView().title();
+
+        PickYourDifficulty.debug("GUIClick → Expected title: " + expectedTitle + ", Actual: " + actualTitle);
+        if (!expectedTitle.equals(actualTitle)) {
+            PickYourDifficulty.debug("GUIClick → Title mismatch. Ignoring.");
+            return; // ⛔ Not the custom GUI — ignore click
+        }
 
         // ⛔ Cancel all GUI interactions to avoid dragging/moving items
         event.setCancelled(true);
@@ -75,6 +85,7 @@ public class GUIClickListener implements Listener {
                 || event.getClick() == ClickType.DROP
                 || event.getClick() == ClickType.CONTROL_DROP) {
 
+            PickYourDifficulty.debug("GUIClick → Blocked invalid click type: " + event.getClick());
             player.sendMessage(mm.deserialize(MessagesManager.get("error.gui-interact-blocked")));
             SoundManager.playCancelSound(player);
             return;
@@ -82,14 +93,22 @@ public class GUIClickListener implements Listener {
 
         // 🪙 Get the clicked item
         ItemStack clicked = event.getCurrentItem();
-        if (clicked == null || clicked.getType() == Material.AIR) return;
+        if (clicked == null || clicked.getType() == Material.AIR) {
+            PickYourDifficulty.debug("GUIClick → Clicked empty slot.");
+            return;
+        }
 
         // ─────────────────────────────────────────────────────────────
         // 📦 Filler Check — Ignore clicks on filler slots
         // ─────────────────────────────────────────────────────────────
         Material fillerMat = Material.getMaterial(ConfigManager.getGuiFillerItemMaterial().toUpperCase());
+        if (fillerMat == null) {
+            PickYourDifficulty.getInstance().getLogger().warning("Invalid GUI filler material in config!");
+            return;
+        }
         String fillerName = ConfigManager.getGuiFillerItemName();
         if (clicked.getType() == fillerMat && hasDisplayName(clicked, fillerName)) {
+            PickYourDifficulty.debug("GUIClick → Clicked filler item. Ignoring.");
             SoundManager.playCancelSound(player);
             return;
         }
@@ -104,22 +123,22 @@ public class GUIClickListener implements Listener {
             // ✅ If icon + name match, this is a valid difficulty option
             if (clicked.getType() == expectedMat && hasDisplayName(clicked, expectedName)) {
 
+                PickYourDifficulty.debug("GUIClick → Matched difficulty icon: " + difficultyId);
+
                 // ⛔ If the player lacks permission for this difficulty, deny it
                 if (DifficultyManager.cannotSelect(player, difficultyId)) {
+                    PickYourDifficulty.debug("GUIClick → " + player.getName() + " lacks permission for " + difficultyId);
                     player.sendMessage(mm.deserialize(MessagesManager.get("error.no-permission")));
                     SoundManager.playDeniedSound(player, true);
                     return;
                 }
-
-                // 🧪 Log selected difficulty to console for server-side visibility
-                logger.info(player.getName() + " selected difficulty: " + difficultyId);
-
 
                 // ⏳ Check if player is under cooldown before allowing selection
                 if (playerDataManager.isGuiCooldownActive(player)) {
 
                     // 🧮 Get the number of seconds remaining before player can reselect
                     int secondsLeft = playerDataManager.getCooldownSecondsLeft(player);
+                    PickYourDifficulty.debug("GUIClick → " + player.getName() + " is under cooldown: " + secondsLeft + "s remaining");
 
                     // 💬 Send a user-friendly cooldown wait message
                     Component msg = MessagesManager.format("error.cooldown-wait", player, secondsLeft);
@@ -131,7 +150,8 @@ public class GUIClickListener implements Listener {
                 }
 
                 // ✅ Proceed to confirmation or instant apply (based on config)
-                guiManager.handleDifficultySelected(player, difficultyId);
+                PickYourDifficulty.debug("GUIClick → " + player.getName() + " selected difficulty: " + difficultyId.toLowerCase());
+                guiManager.handleDifficultySelected(player, difficultyId.toLowerCase());
 
                 // 🔊 Play confirm sound and close the GUI
                 SoundManager.playConfirmSound(player);
@@ -141,6 +161,7 @@ public class GUIClickListener implements Listener {
         }
 
         // 🚫 Click didn't match any known difficulty — no action taken
+        PickYourDifficulty.debug("GUIClick → No matching difficulty found for click.");
     }
 
     // ─────────────────────────────────────────────────────────────
